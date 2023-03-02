@@ -4,14 +4,17 @@
 
 #define ready_led_pin 8
 #define activity_led_pin 9
-#define state_change_thresh 3.0
+#define pot_pin A6
 #define state_time_thresh 5000
 
+double state_change_thresh = 3.0;
 double initial_read;
 unsigned long start_time;
 long previousMillis_h = 0;
 long previousMillis_l = 0;
-double state = LOW;
+int state = LOW;
+int previous_state = state;
+
 
 Adafruit_MPU6050 mpu;
 
@@ -82,13 +85,26 @@ void setup(void) {
 }
 
 void loop() {
+
+  int potVal = analogRead(pot_pin);
+  state_change_thresh = map(potVal, 0, 750, 1, 10);
+  Serial.print("Pot: ");
+  Serial.println(state_change_thresh);
   
   //Check for on:
   double new_reading = get_reading();
   Serial.print(new_reading);
   Serial.print(" State: ");
-  Serial.println(state);
+  Serial.print(state);
+  Serial.print(" Prev-State: ");
+  Serial.println(previous_state);
 
+  
+  if (previous_state != state){
+    //contact_reading = !contact_reading;
+    // reset the timer every transition
+    previousMillis_h = millis(); 
+  } 
   
   if(abs(initial_read - new_reading) > state_change_thresh){
 
@@ -99,6 +115,7 @@ void loop() {
       Serial.println(" THRESHOLD AND TIMER!!!!");
 
       // Set state
+      previous_state = !state;
       state = HIGH;
       
       previousMillis_h = currentMillis_h; 
@@ -108,6 +125,7 @@ void loop() {
   } else{
      
       // Set state
+      previous_state = !state;
       state = LOW;
       
   }
