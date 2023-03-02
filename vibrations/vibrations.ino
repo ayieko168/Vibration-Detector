@@ -13,8 +13,6 @@ unsigned long start_time;
 long previousMillis_h = 0;
 long previousMillis_l = 0;
 int state = LOW;
-int previous_state = state;
-
 
 Adafruit_MPU6050 mpu;
 
@@ -95,42 +93,37 @@ void loop() {
   double new_reading = get_reading();
   Serial.print(new_reading);
   Serial.print(" State: ");
-  Serial.print(state);
-  Serial.print(" Prev-State: ");
-  Serial.println(previous_state);
+  Serial.println(state);
 
+  static unsigned long start_time = 0; // Declare start_time as static
+  unsigned long currentMillis = millis();
   
-  if (previous_state != state){
-    //contact_reading = !contact_reading;
-    // reset the timer every transition
-    previousMillis_h = millis(); 
-  } 
-  
-  if(abs(initial_read - new_reading) > state_change_thresh){
+  if (abs(initial_read - new_reading) > state_change_thresh) {
 
-    unsigned long currentMillis_h = millis(); 
-    if(abs(currentMillis_h - previousMillis_h) > state_time_thresh){
+    if (!start_time) { // If start_time is zero, assign the current time
+      start_time = currentMillis;
+    }
+    
+    if (currentMillis - start_time >= state_time_thresh) { // Check if the elapsed time exceeds the threshold
       
-      Serial.print(abs(currentMillis_h - previousMillis_h));
+      Serial.print(abs(currentMillis - start_time));
       Serial.println(" THRESHOLD AND TIMER!!!!");
 
       // Set state
-      previous_state = !state;
       state = HIGH;
-      
-      previousMillis_h = currentMillis_h; 
+      digitalWrite(activity_led_pin, state); // Update the LED immediately after the threshold is reached
+
+      start_time = 0; // Reset start_time to zero
     }
     
     Serial.println("THRESHOLD!!!!");
-  } else{
-     
-      // Set state
-      previous_state = !state;
-      state = LOW;
-      
+  } 
+  else {
+    // Set state
+    state = LOW;
+    digitalWrite(activity_led_pin, state); // Update the LED immediately when condition is false
+    
+    start_time = 0; // Reset start_time to zero
   }
 
-  
-  digitalWrite(activity_led_pin, state);
-  
 }
