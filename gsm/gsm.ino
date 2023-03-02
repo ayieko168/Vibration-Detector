@@ -16,10 +16,10 @@ long previousMillis_l = 0;
 int state = LOW;
 
 
-String apn = "telkom";                    //APN
+String apn = "telkom";                 //APN
 String apn_u = "";                     //APN-Username
 String apn_p = "";                     //APN-Password
-String url = "http://testserver.aeq-web.com/sim800_test/sim800.php";  //URL of Server
+String url = "https://aws-demo.razorinformatics.co.ke/api/v1/sensors";  //URL of Server
 
 Adafruit_MPU6050 mpu;
 SoftwareSerial SWserial(7, 6); // RX, TX
@@ -61,7 +61,8 @@ void gsm_http_post( String postdata) {
   gsm_send_serial("AT+HTTPINIT");
   gsm_send_serial("AT+HTTPPARA=CID,1");
   gsm_send_serial("AT+HTTPPARA=URL," + url);
-  gsm_send_serial("AT+HTTPPARA=CONTENT,application/x-www-form-urlencoded");
+  gsm_send_serial("AT+HTTPPARA=CONTENT,application/json");
+  gsm_send_serial("AT+HTTPPARA=USERDATA,Authorization:Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW");
   gsm_send_serial("AT+HTTPDATA=192,5000");
   gsm_send_serial(postdata);
   gsm_send_serial("AT+HTTPACTION=1");
@@ -82,6 +83,11 @@ void gsm_config_gprs() {
   }
 }
 
+void gsm_config_time(){
+  gsm_send_serial("AT+CLTS=1");
+  gsm_send_serial("AT&W");
+}
+
 void gsm_send_serial(String command) {
   Serial.println("Send ->: " + command);
   SWserial.println(command);
@@ -92,6 +98,20 @@ void gsm_send_serial(String command) {
     }
   }
   Serial.println();
+}
+
+String gsm_rs_send_serial(String command) {
+  String response = "";
+  
+  SWserial.println(command);  // Send the command to the GSM module
+  delay(1000);  // Wait for the response to arrive
+
+  // Read the response from the GSM module
+  while (SWserial.available()) {
+    response += SWserial.readString();
+  }
+
+  return response;
 }
 
 void setup(void) {
@@ -109,7 +129,7 @@ void setup(void) {
     Serial.println("Failed to find MPU6050 chip");
     blink_indicator(2);
     while (1) {
-      delay(10);
+      delay(5);
     }
   }
 
@@ -124,7 +144,8 @@ void setup(void) {
   mpu.setGyroRange(MPU6050_RANGE_250_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
 
-  gsm_config_gprs();
+  gsm_config_time();
+  //gsm_config_gprs();
 
   delay(100);
 
@@ -137,13 +158,13 @@ void loop() {
   int potVal = analogRead(pot_pin);
   double new_reading = get_reading();
   state_change_thresh = map(potVal, 0, 750, 1, 20);
-  
-  Serial.print("Pot: ");
+ 
+  Serial.print("New Reading: ");
+  Serial.print(new_reading);
+  Serial.print(" Thresh Val: ");
   Serial.print(state_change_thresh);
   Serial.print(" Thresh Delta: ");
   Serial.print(abs(initial_read - new_reading));
-  Serial.print(" New Reading: ");
-  Serial.print(new_reading);
   Serial.print(" State: ");
   Serial.println(state);
 
@@ -164,8 +185,10 @@ void loop() {
         Serial.println();
         
         //Send Notification
-        //gsm_http_post("param=TestFromMySim800");
-        gsm_send_serial("AT+CCLK?");
+        gsm_http_post("{'status': 'off'}");
+        //gsm_send_serial("AT+CCLK?");
+        //String time_now = gsm_rs_send_serial("AT+CCLK?");
+        //Serial.println("TIME: " + time_now + " END TIME");
       }
       
 
@@ -185,7 +208,7 @@ void loop() {
         Serial.println();
         
         //Send Notification
-        gsm_http_post("param=TestFromMySim800");
+        //gsm_http_post("param=TestFromMySim800");
     }
      
     // Set state
