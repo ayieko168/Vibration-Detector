@@ -5,7 +5,7 @@
 #define ready_led_pin 8
 #define activity_led_pin 9
 #define pot_pin A6
-#define state_time_thresh 5000
+#define state_time_thresh 3000
 
 double state_change_thresh = 3.0;
 double initial_read;
@@ -85,19 +85,22 @@ void setup(void) {
 void loop() {
 
   int potVal = analogRead(pot_pin);
-  state_change_thresh = map(potVal, 0, 750, 1, 10);
-  Serial.print("Pot: ");
-  Serial.println(state_change_thresh);
-  
-  //Check for on:
   double new_reading = get_reading();
+  state_change_thresh = map(potVal, 0, 750, 1, 20);
+  
+  Serial.print("Pot: ");
+  Serial.print(state_change_thresh);
+  Serial.print(" Thresh Delta: ");
+  Serial.print(abs(initial_read - new_reading));
+  Serial.print(" New Reading: ");
   Serial.print(new_reading);
   Serial.print(" State: ");
   Serial.println(state);
 
   static unsigned long start_time = 0; // Declare start_time as static
   unsigned long currentMillis = millis();
-  
+
+  //Check for on:
   if (abs(initial_read - new_reading) > state_change_thresh) {
 
     if (!start_time) { // If start_time is zero, assign the current time
@@ -105,9 +108,13 @@ void loop() {
     }
     
     if (currentMillis - start_time >= state_time_thresh) { // Check if the elapsed time exceeds the threshold
+
+      if(state != HIGH){
+        Serial.println("THRESHOLD AND TIMER!!! Sending On Notification");
+
+        //Send Notification
+      }
       
-      Serial.print(abs(currentMillis - start_time));
-      Serial.println(" THRESHOLD AND TIMER!!!!");
 
       // Set state
       state = HIGH;
@@ -119,11 +126,19 @@ void loop() {
     Serial.println("THRESHOLD!!!!");
   } 
   else {
+
+    if(state != LOW){
+        Serial.println("NO THRESHOLD AND TIMER!!! Sending Off Notification");
+
+        //Send Notification
+    }
+     
     // Set state
     state = LOW;
     digitalWrite(activity_led_pin, state); // Update the LED immediately when condition is false
-    
     start_time = 0; // Reset start_time to zero
+
+    
   }
 
 }
