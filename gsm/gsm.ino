@@ -62,7 +62,7 @@ void gsm_http_post( String postdata) {
   gsm_send_serial("AT+HTTPPARA=CID,1");
   gsm_send_serial("AT+HTTPPARA=URL," + url);
   gsm_send_serial("AT+HTTPPARA=CONTENT,application/json");
-  gsm_send_serial("AT+HTTPPARA=USERDATA,Authorization:Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW");
+  gsm_send_serial("AT+HTTPPARA=USERDATA,\"Authorization\": \"Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW\"");
   gsm_send_serial("AT+HTTPDATA=192,5000");
   gsm_send_serial(postdata);
   gsm_send_serial("AT+HTTPACTION=1");
@@ -185,7 +185,7 @@ void loop() {
         Serial.println();
         
         //Send Notification
-        gsm_http_post("{'status': 'off'}");
+        gsm_http_post("{\"status\": \"off\"}");
         //gsm_send_serial("AT+CCLK?");
         //String time_now = gsm_rs_send_serial("AT+CCLK?");
         //Serial.println("TIME: " + time_now + " END TIME");
