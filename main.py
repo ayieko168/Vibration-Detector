@@ -28,7 +28,7 @@ def create_item(token: str, status: str):
 
 
 if __name__ == "__main__":
-    config = uvicorn.Config("main:app", port=5000, log_level="info", reload=True)
+    config = uvicorn.Config("main:app", port=5200, log_level="info", reload=True)
     server = uvicorn.Server(config)
     server.run()
 
