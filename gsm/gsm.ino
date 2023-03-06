@@ -20,6 +20,7 @@ String apn = "telkom";                 //APN
 String apn_u = "";                     //APN-Username
 String apn_p = "";                     //APN-Password
 String url = "https://aws-demo.razorinformatics.co.ke/api/v1/sensors";  //URL of Server
+String contentType = "application/json";
 
 Adafruit_MPU6050 mpu;
 SoftwareSerial SWserial(7, 6); // RX, TX
@@ -55,6 +56,7 @@ double get_reading(){
 }
 
 void gsm_http_post( String postdata) {
+
   Serial.println(" --- Start GPRS & HTTP --- ");
   gsm_send_serial("AT+SAPBR=1,1");
   gsm_send_serial("AT+SAPBR=2,1");
@@ -62,14 +64,44 @@ void gsm_http_post( String postdata) {
   gsm_send_serial("AT+HTTPPARA=CID,1");
   gsm_send_serial("AT+HTTPPARA=URL," + url);
   gsm_send_serial("AT+HTTPPARA=CONTENT,application/json");
-  gsm_send_serial("AT+HTTPPARA=USERDATA,\"Authorization\": \"Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW\"");
-  gsm_send_serial("AT+HTTPDATA=192,5000");
+
+  //gsm_send_serial("AT+HTTPPARA=\"USERDATA\",\"Authorization: Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW\"");
+  SWserial.println("AT+HTTPPARA=\"USERDATA\",\"Authorization: Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW\"");
+  delay(7000);
+  //gsm_send_serial("AT+HTTPPARA=USERDATA,Authorization: Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW");
+  gsm_send_serial("AT+HTTPDATA=50,5000");
   gsm_send_serial(postdata);
   gsm_send_serial("AT+HTTPACTION=1");
   gsm_send_serial("AT+HTTPREAD");
   gsm_send_serial("AT+HTTPTERM");
   gsm_send_serial("AT+SAPBR=0,1");
 }
+
+void new_gsm_http_post( String postdata) {
+
+  Serial.println(" --- Start GPRS & HTTP --- ");
+  gsm_send_serial(F("AT+HTTPTERM\r"));
+  gsm_send_serial(F("AT+HTTPINIT\r\n"));
+  gsm_send_serial(F("AT+HTTPPARA=\"CID\",1\r"));
+  gsm_send_serial(F("AT+HTTPPARA=\"URL\",\""));
+  gsm_send_serial(url);
+  gsm_send_serial(F("\"\r"));
+  gsm_send_serial("AT+HTTPPARA=URL," + url);
+  gsm_send_serial(F("AT+HTTPPARA=\"CONTENT\",\""));
+  gsm_send_serial(contentType);
+  gsm_send_serial(F("\"\r"));
+  unsigned int _length = postdata.length();
+  gsm_send_serial(F("AT+HTTPDATA="));
+  gsm_send_serial(String(_length));
+  gsm_send_serial(F(","));
+  gsm_send_serial(String(30000));
+  gsm_send_serial("\r");
+  gsm_send_serial(postdata);
+  gsm_send_serial(F("\r"));
+  gsm_send_serial(F("AT+HTTPACTION=1\r"));
+  gsm_send_serial(F("AT+HTTPTERM\r"));
+}
+
 
 void gsm_config_gprs() {
   Serial.println(" --- CONFIG GPRS --- ");
@@ -185,7 +217,7 @@ void loop() {
         Serial.println();
         
         //Send Notification
-        gsm_http_post("{\"status\": \"off\"}");
+        gsm_http_post("{\"status\": \"on\"}");
         //gsm_send_serial("AT+CCLK?");
         //String time_now = gsm_rs_send_serial("AT+CCLK?");
         //Serial.println("TIME: " + time_now + " END TIME");
@@ -208,7 +240,7 @@ void loop() {
         Serial.println();
         
         //Send Notification
-        //gsm_http_post("param=TestFromMySim800");
+        //new_gsm_http_post("param=TestFromMySim800");
     }
      
     // Set state
