@@ -25,11 +25,11 @@ String contentType = "application/json";
 Adafruit_MPU6050 mpu;
 SoftwareSerial SWserial(7, 6); // RX, TX
 
-void blink_indicator(int times, int delay_time = 500){
+void blink_indicator(int times, int delay_time = 250, int led_pin = ready_led_pin){
   for(int i = 1; i <= times; i++){
-    digitalWrite(ready_led_pin, HIGH);
+    digitalWrite(led_pin, HIGH);
     delay(delay_time);
-    digitalWrite(ready_led_pin, LOW);
+    digitalWrite(led_pin, LOW);
     delay(delay_time);
   }
 }
@@ -37,7 +37,7 @@ void blink_indicator(int times, int delay_time = 500){
 double get_reading(){
 
   double gf_sum = 0.0;
-  for(int i = 1; i <= 25; i++){
+  for(int i = 1; i <= 50; i++){
     /* Get new sensor events with the readings */
     sensors_event_t a, g, temp;
     mpu.getEvent(&a, &g, &temp);
@@ -55,26 +55,34 @@ double get_reading(){
   return gf_sum;
 }
 
-void gsm_http_post( String postdata) {
+void gsm_send_serial(String command, int delay_time = 500) {
+  Serial.println("Send ->: " + command);
+  SWserial.println(command);
+  long wtimer = millis();
+  while (wtimer + delay_time > millis()) {
+    while (SWserial.available()) {
+      Serial.write(SWserial.read());
+    }
+  }
+  Serial.println();
+}
 
+void gsm_http_post( String _status) {
+
+  url = "http://151.80.209.133:5200/api/9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW/" + _status;
+  
   Serial.println(" --- Start GPRS & HTTP --- ");
-  gsm_send_serial("AT+SAPBR=1,1");
-  gsm_send_serial("AT+SAPBR=2,1");
-  gsm_send_serial("AT+HTTPINIT");
-  gsm_send_serial("AT+HTTPPARA=CID,1");
-  gsm_send_serial("AT+HTTPPARA=URL," + url);
-  gsm_send_serial("AT+HTTPPARA=CONTENT,application/json");
-
-  //gsm_send_serial("AT+HTTPPARA=\"USERDATA\",\"Authorization: Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW\"");
-  SWserial.println("AT+HTTPPARA=\"USERDATA\",\"Authorization: Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW\"");
-  delay(7000);
-  //gsm_send_serial("AT+HTTPPARA=USERDATA,Authorization: Bearer 9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW");
-  gsm_send_serial("AT+HTTPDATA=50,5000");
-  gsm_send_serial(postdata);
-  gsm_send_serial("AT+HTTPACTION=1");
-  gsm_send_serial("AT+HTTPREAD");
-  gsm_send_serial("AT+HTTPTERM");
-  gsm_send_serial("AT+SAPBR=0,1");
+  gsm_send_serial(F("AT+CREG?"));
+  gsm_send_serial(F("AT+CGREG?"));
+  gsm_send_serial(F("AT+SAPBR=1,1"));
+  gsm_send_serial(F("AT+SAPBR=2,1"), 1000);
+  gsm_send_serial(F("AT+HTTPTERM"));
+  gsm_send_serial(F("AT+HTTPINIT"));
+  gsm_send_serial("AT+HTTPPARA=\"URL\"," + url);
+  gsm_send_serial(F("AT+HTTPPARA=\"CID\",1"));
+  gsm_send_serial(F("AT+HTTPACTION=0"), 3000);
+  gsm_send_serial(F("AT+HTTPREAD"));
+  gsm_send_serial(F("AT+HTTPTERM"));
 }
 
 void new_gsm_http_post( String postdata) {
@@ -102,35 +110,29 @@ void new_gsm_http_post( String postdata) {
   gsm_send_serial(F("AT+HTTPTERM\r"));
 }
 
-
 void gsm_config_gprs() {
   Serial.println(" --- CONFIG GPRS --- ");
   gsm_send_serial("AT+SAPBR=3,1,Contype,GPRS");
   gsm_send_serial("AT+SAPBR=3,1,APN," + apn);
+  
   if (apn_u != "") {
     gsm_send_serial("AT+SAPBR=3,1,USER," + apn_u);
   }
   if (apn_p != "") {
     gsm_send_serial("AT+SAPBR=3,1,PWD," + apn_p);
   }
+
+  delay(10000);
+
+  gsm_send_serial("AT+SAPBR=2,1");
 }
 
 void gsm_config_time(){
   gsm_send_serial("AT+CLTS=1");
   gsm_send_serial("AT&W");
+  gsm_send_serial("AT+SAPBR=2,1");
 }
 
-void gsm_send_serial(String command) {
-  Serial.println("Send ->: " + command);
-  SWserial.println(command);
-  long wtimer = millis();
-  while (wtimer + 3000 > millis()) {
-    while (SWserial.available()) {
-      Serial.write(SWserial.read());
-    }
-  }
-  Serial.println();
-}
 
 String gsm_rs_send_serial(String command) {
   String response = "";
@@ -213,11 +215,12 @@ void loop() {
     if (currentMillis - start_time >= state_time_thresh) { // Check if the elapsed time exceeds the threshold
 
       if(state != HIGH){
+        blink_indicator(2, 250, activity_led_pin);
         Serial.println("THRESHOLD AND TIMER!!! Sending On Notification");
         Serial.println();
         
         //Send Notification
-        gsm_http_post("{\"status\": \"on\"}");
+        gsm_http_post("on");
         //gsm_send_serial("AT+CCLK?");
         //String time_now = gsm_rs_send_serial("AT+CCLK?");
         //Serial.println("TIME: " + time_now + " END TIME");
@@ -240,6 +243,7 @@ void loop() {
         Serial.println();
         
         //Send Notification
+        gsm_http_post("off");
         //new_gsm_http_post("param=TestFromMySim800");
     }
      
