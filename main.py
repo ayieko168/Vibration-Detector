@@ -11,7 +11,7 @@ def read_root():
     return {"Status": "Working"}
 
 
-@app.post("/api/{token}/{status}")
+@app.get("/api/{token}/{status}")
 def create_item(token: str, status: str):
     
     url = "https://aws-demo.razorinformatics.co.ke/api/v1/sensors"
