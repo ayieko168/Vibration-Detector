@@ -215,7 +215,8 @@ void loop() {
     if (currentMillis - start_time >= state_time_thresh) { // Check if the elapsed time exceeds the threshold
 
       if(state != HIGH){
-        blink_indicator(2, 250, activity_led_pin);
+        blink_indicator(2
+        , 250, activity_led_pin);
         Serial.println("THRESHOLD AND TIMER!!! Sending On Notification");
         Serial.println();
         
