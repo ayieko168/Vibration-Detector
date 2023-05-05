@@ -69,7 +69,9 @@ void gsm_send_serial(String command, int delay_time = 500) {
 
 void gsm_http_post( String _status) {
 
-  url = "http://151.80.209.133:5200/api/9zcWkpO5VTQKbEd0cwe7Ddjea7BEclkxnaDbJAeW/" + _status;
+  blink_indicator(2, 200, ready_led_pin);
+  //url = "http://151.80.209.133:5200/api/STq0FXA9O1wCiQk4YAqTH6wDRNjFCHhWI78kFzIH/" + _status;
+  url = "http://aws-demo.razorinformatics.co.ke/iot/v1/sensors?bearer_token=STq0FXA9O1wCiQk4YAqTH6wDRNjFCHhWI78kFzIH&status=" + _status;
   
   Serial.println(" --- Start GPRS & HTTP --- ");
   gsm_send_serial(F("AT+CREG?"));
@@ -83,6 +85,7 @@ void gsm_http_post( String _status) {
   gsm_send_serial(F("AT+HTTPACTION=0"), 3000);
   gsm_send_serial(F("AT+HTTPREAD"));
   gsm_send_serial(F("AT+HTTPTERM"));
+  blink_indicator(3, 200, ready_led_pin);
 }
 
 void new_gsm_http_post( String postdata) {
@@ -218,7 +221,11 @@ void loop() {
         blink_indicator(2, 250, activity_led_pin);
         Serial.println("THRESHOLD AND TIMER!!! Sending On Notification");
         Serial.println();
-        
+
+        // Set state
+        state = HIGH;
+        digitalWrite(activity_led_pin, state); // Update the LED immediately after the threshold is reached
+      
         //Send Notification
         gsm_http_post("on");
         //gsm_send_serial("AT+CCLK?");
@@ -226,11 +233,6 @@ void loop() {
         //Serial.println("TIME: " + time_now + " END TIME");
       }
       
-
-      // Set state
-      state = HIGH;
-      digitalWrite(activity_led_pin, state); // Update the LED immediately after the threshold is reached
-
       start_time = 0; // Reset start_time to zero
     }
     
@@ -241,15 +243,16 @@ void loop() {
     if(state != LOW){
         Serial.println("NO THRESHOLD AND TIMER!!! Sending Off Notification");
         Serial.println();
+
+        // Set state
+        state = LOW;
+        digitalWrite(activity_led_pin, state); // Update the LED immediately when condition is false
         
         //Send Notification
         gsm_http_post("off");
         //new_gsm_http_post("param=TestFromMySim800");
     }
      
-    // Set state
-    state = LOW;
-    digitalWrite(activity_led_pin, state); // Update the LED immediately when condition is false
     start_time = 0; // Reset start_time to zero
 
     
