@@ -8,7 +8,7 @@ state = 'valid'
 
 @app.get("/")
 def read_root():
-    return {"Status": "Working"}
+    return {"state": "Working"}
 
 
 @app.post("/state/get")
@@ -20,13 +20,13 @@ def get_state():
 @app.post("/state/set")
 async def read_root(request: Request):
     global state
-    
+
     new_state = await request.json()
     new_state = new_state.get('new_state')
     print(f"POST DATA: {new_state}")
 
     state = new_state
-    return {"Status": state}
+    return {"state": state}
 
 
 
