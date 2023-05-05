@@ -1,14 +1,33 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import uvicorn
 import requests
 import json
 
 app = FastAPI()
-
+state = 'valid'
 
 @app.get("/")
 def read_root():
     return {"Status": "Working"}
+
+
+@app.post("/state/get")
+def get_state():
+    global state
+
+    return {"state": state}
+
+@app.post("/state/set")
+async def read_root(request: Request):
+    global state
+    
+    new_state = await request.json()
+    new_state = new_state.get('new_state')
+    print(f"POST DATA: {new_state}")
+
+    state = new_state
+    return {"Status": state}
+
 
 
 @app.get("/api/{token}/{status}")
