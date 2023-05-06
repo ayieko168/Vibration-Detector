@@ -12,13 +12,16 @@ def read_root():
 
 
 @app.post("/state/get")
-def get_state():
+async def get_state(request: Request):
     global state
+
+    device_data = await request.json()
+    print(f"POSTED DATA: {device_data}")
 
     return {"state": state}
 
 @app.post("/state/set")
-async def read_root(request: Request):
+async def set_state(request: Request):
     global state
 
     new_state = await request.json()
