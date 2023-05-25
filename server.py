@@ -1,14 +1,7 @@
 import socket
-from psutil import process_iter
-from signal import SIGTERM # or SIGKILL
 
 PORT = 6543
 
-## Kill process running on PORT
-for proc in process_iter():
-    for conns in proc.connections(kind='inet'):
-        if conns.laddr.port == PORT:
-            proc.send_signal(SIGTERM) # or SIGKILL
 
 # Set up a TCP/IP server
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,7 +23,6 @@ while True:
             data = data.decode("utf-8")
             print(f'Received : ', data)
             if data:
-                pass
                 if data.strip().isdigit():
                     device_id = int(data.strip())
                     print("Device ID: ", device_id)
