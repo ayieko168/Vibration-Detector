@@ -26,13 +26,14 @@ while True:
     try:
         print('Connection from', client)
         while True:
-            data = connection.recv(15)
-            data = data.decode("utf-8")
+            data = connection.recv(512)
+            # data = data.decode("utf-8")
             print(f'Received : {data}')
             if data:
-                if data.isdigit():
-                    device_id = int(data.strip())
-                    print("Device ID: ", device_id)
+                pass
+                # if data.isdigit():
+                #     device_id = int(data.strip())
+                #     print("Device ID: ", device_id)
                 #connection.sendall(data.encode("utf-8"))
             else:
                 break
