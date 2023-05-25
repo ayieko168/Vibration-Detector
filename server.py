@@ -26,7 +26,7 @@ while True:
                 if data.strip().isdigit():
                     device_id = int(data.strip())
                     print("Device ID: ", device_id)
-                connection.sendall('01'.encode('utf-8'))
+                connection.sendall(hex(1).encode('utf-8'))
             else:
                 break
     finally:
