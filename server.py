@@ -1,10 +1,20 @@
 import socket
+from psutil import process_iter
+from signal import SIGTERM # or SIGKILL
+
+PORT = 6543
+
+## Kill process running on PORT
+for proc in process_iter():
+    for conns in proc.connections(kind='inet'):
+        if conns.laddr.port == 8080:
+            proc.send_signal(SIGTERM) # or SIGKILL
 
 # Set up a TCP/IP server
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind the socket to server address and port 81
-server_address = ('0.0.0.0', 6543)
+server_address = ('0.0.0.0', PORT)
 tcp_socket.bind(server_address)
 
 # Listen on port 81
