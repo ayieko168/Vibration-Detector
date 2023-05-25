@@ -19,7 +19,7 @@ while True:
     try:
         print('Connection from', client)
         while True:
-            data = connection.recv(512)
+            data = connection.recv(1280)
             # data = data.decode("utf-8")
             print(f'Received : ', data)
             if data:
