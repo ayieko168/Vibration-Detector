@@ -7,7 +7,7 @@ PORT = 6543
 ## Kill process running on PORT
 for proc in process_iter():
     for conns in proc.connections(kind='inet'):
-        if conns.laddr.port == 8080:
+        if conns.laddr.port == PORT:
             proc.send_signal(SIGTERM) # or SIGKILL
 
 # Set up a TCP/IP server
