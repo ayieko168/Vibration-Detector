@@ -23,6 +23,7 @@ while True:
             data = data.decode("utf-8")
             print(f'Received : ', data)
             if data:
+                print(f"DATA iS DIG: {data.strip().isdigit()}")
                 if data.strip().isdigit():
                     device_id = int(data.strip())
                     print("Device ID: ", device_id)
