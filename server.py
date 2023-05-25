@@ -20,7 +20,9 @@ while True:
             data = data.decode("utf-8")
             print(f'Received : {data}')
             if data:
-                pass
+                if data.isdigit():
+                    device_id = int(data.strip())
+                    print("Device ID: ", device_id)
                 #connection.sendall(data.encode("utf-8"))
             else:
                 break
