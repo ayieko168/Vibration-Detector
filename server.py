@@ -1,11 +1,13 @@
 import socket
+import struct
+import binascii
 
 PORT = 6543
 
 
 # Set up a TCP/IP server
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 # Bind the socket to server address and port 81
 server_address = ('0.0.0.0', PORT)
 tcp_socket.bind(server_address)
@@ -20,6 +22,7 @@ while True:
         print('Connection from', client)
         while True:
             data = connection.recv(1280)
+            data = binascii.hexlify(data)
             # data = data.decode("utf-8")
             print(f'Received : ', data)
             if data:
