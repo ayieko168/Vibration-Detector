@@ -9,6 +9,14 @@ host = '0.0.0.0'
 port = 6543
 
 
+## EXAMPLE DATA
+
+example_imei = b"000F333536333037303432343431303133"
+example_avl = b"000000000000004308020000016B40D57B480100000000000000000000000000000001010101000000000000016B40D5C198010000000000000000000000000000000101010101000000020000252C"
+
+## EXAMPLE DATA END
+
+
 class ClientThread(Thread):
     def __init__(self, _socket) -> None:
         Thread.__init__(self)
@@ -33,7 +41,7 @@ class ClientThread(Thread):
                     received = binascii.hexlify(buff)
                     received_sepd = binascii.hexlify(buff, " ")
                     
-                    print(f"[DEBUG]: DATA RECIEVED: {received_sepd}")
+                    print(f"\n[DEBUG]: DATA RECIEVED: {received}\n\n")
                     
                     if len(received) > 2:
                         if self.step == 1:
@@ -69,6 +77,9 @@ class Decoder:
 
 
 if __name__ == "__main__":
+    
+    # exit(0)
+
     print(f"SERVER. {strftime('%d %b %H:%M:%S', gmtime())}")
     print(f"Server Started at port: {port}")
     server = None
@@ -92,3 +103,8 @@ if __name__ == "__main__":
         exit(0)
     while True:
         ClientThread(server.accept()).start()
+        
+
+def test():
+    
+    decoder = Decoder(example_avl, example_imei)
