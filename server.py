@@ -44,7 +44,7 @@ class ClientThread(Thread):
                     received = binascii.hexlify(buff)
                     received_sepd = binascii.hexlify(buff, " ")
                     
-                    print(f"\n[DEBUG]: DATA RECIEVED: {received}\n\n")
+                    print(f"\n[DEBUG]: DATA RECIEVED: {received_sepd}\n\n")
                     
                     if len(received) > 2:
                         if self.step == 1:
@@ -54,7 +54,7 @@ class ClientThread(Thread):
                             self.conn.send('\x01'.encode('utf-8'))
                         elif self.step == 2:
                             decoder = Decoder()
-                            len_records = decoder.decode_data()
+                            len_records = decoder.decode_data(received)
                             if len_records == 0:
                                 self.conn.send('\x00'.encode('utf-8'))
                                 self.conn.close()
@@ -95,6 +95,7 @@ if __name__ == "__main__":
     except socket.error as e:
         print("[X] Socket Listening Error: {}".format(e))
         exit(0)
+
     while True:
         ClientThread(server.accept()).start()
         
