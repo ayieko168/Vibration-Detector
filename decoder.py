@@ -215,7 +215,7 @@ class Decoder:
 
         ## Break down the packets into the individual bytes of data as per the Teltonika AVL Protocol
         unpacked_packet = self.extract_packet_data(avl_packet)
-        pprint(unpacked_packet)
+        # pprint(unpacked_packet)
 
         ## Verify the packet is correct
         preamble = int(unpacked_packet['Zero Bytes'], 16)
