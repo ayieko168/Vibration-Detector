@@ -4,11 +4,14 @@ import binascii
 from pprint import pprint
 import json
 
+## TODO: Decode network operators code from: https://xphone24.com/operator-codes.php#:~:text=Operator%20code%20is%20a%20unique%20number%20assigned%20to,Network%20Code%20%28MNC%29%20and%20Mobile%20Country%20Code%20%28MCC%29.
+
 class Decoder:
     
     def __init__(self):
         
         self.avl_ids = {}
+        self.data_length = None
 
         ## read the alv IDS dictionary
         with open('avl_ids.json') as f:
@@ -170,9 +173,6 @@ class Decoder:
         elif priority == 2:
             return "PANIC"
 
-    def decode_coordinate(self, coordinate_packet):
-        return int(coordinate_packet, 16)
-
     def decode_io_elements(self, io_packet):
         key, val = io_packet
         # print(key, val)
@@ -180,9 +180,34 @@ class Decoder:
         io_id = int(key, 16)
         val = int(val, 16)
         
-        value = (self.avl_ids[str(io_id)], val)
+        result = self.avl_ids[str(io_id)]
+        result["Value"] = val
 
-        return value
+        return result
+
+    def decode_coordinate(self, coordinate_hex):
+        # Convert hex string to integer
+        coordinate_int = int(coordinate_hex, 16)
+
+        # Check if the coordinate is negative
+        if coordinate_int & (1 << 31):
+            # If negative, convert to positive by flipping the sign bit
+            coordinate_int = coordinate_int ^ 0xFFFFFFFF
+
+        # Extract individual components
+        degrees = coordinate_int // 10000000
+        minutes = (coordinate_int % 10000000) // 100000
+        seconds = (coordinate_int % 100000) // 1000
+        milliseconds = coordinate_int % 1000
+
+        # Calculate the decimal value of the coordinate
+        decimal_coordinate = (degrees + minutes / 60 + seconds / 3600 + milliseconds / 3600000) * 10000000
+
+        # Adjust the sign if longitude is in west or latitude in south
+        if coordinate_int & (1 << 31):
+            decimal_coordinate *= -1
+
+        return decimal_coordinate
 
     def decode_data(self, avl_packet):
         
@@ -191,7 +216,7 @@ class Decoder:
 
         ## Break down the packets into the individual bytes of data as per the Teltonika AVL Protocol
         unpacked_packet = self.extract_packet_data(avl_packet)
-        pprint(unpacked_packet)
+        print(json.dumps(unpacked_packet, indent=2))
 
         ## Verify the packet is correct
         preamble = int(unpacked_packet['Zero Bytes'], 16)
@@ -250,6 +275,7 @@ class Decoder:
         data['records_length'] = int(unpacked_packet['Number of Data 1 (Records)'], 16)
         data['avl_records'] = avl_records
 
+        self.data_length = data['data_length']
 
         return data
 
