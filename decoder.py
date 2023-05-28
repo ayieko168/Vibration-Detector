@@ -1,19 +1,27 @@
 
 import struct
 import binascii
+from pprint import pprint
+import json
 
 class Decoder:
     
     def __init__(self):
-        pass
+        
+        self.avl_ids = {}
+
+        ## read the alv IDS dictionary
+        with open('avl_ids.json') as f:
+            self.avl_ids = json.load(f)
     
     def padd(self, data):
         if type(data) == bytes:
             data = data.decode('utf-8')
             
         return ' '.join(data[i:i+2] for i in range(0, len(data), 2))
+    
 
-    def decode_data(self, avl_packet):
+    def extract_packet_data(self, avl_packet):
 
         # Breakdown the AVL Data Packet
         zero_bytes = avl_packet[:8]
@@ -105,7 +113,7 @@ class Decoder:
                 offset += 16
                 eight_bytes_io[io_id] = io_value
 
-            record['AVL Data'] = {
+            record = {
                 'Timestamp': timestamp,
                 'Priority': priority,
                 'Longitude': longitude,
@@ -147,8 +155,104 @@ class Decoder:
 
         # pprint(decoded_data)
 
-        return int(num_data_records, 16)
+        return decoded_data
+
+    def decode_timestamp(self, timestamp_packet):
+        return int(timestamp_packet, 16)
     
+    def decode_priority(self, priority_packet):
+        priority = int(priority_packet, 16)
+
+        if priority == 0:
+            return "LOW"
+        elif priority == 1:
+            return "HIGH"
+        elif priority == 2:
+            return "PANIC"
+
+    def decode_coordinate(self, coordinate_packet):
+        return int(coordinate_packet, 16)
+
+    def decode_io_elements(self, io_packet):
+        key, val = io_packet
+        # print(key, val)
+
+        io_id = int(key, 16)
+        val = int(val, 16)
+        
+        value = (self.avl_ids[str(io_id)], val)
+
+        return value
+
+    def decode_data(self, avl_packet):
+        
+        ## Dict to hold the decoded data
+        data = {}
+
+        ## Break down the packets into the individual bytes of data as per the Teltonika AVL Protocol
+        unpacked_packet = self.extract_packet_data(avl_packet)
+        pprint(unpacked_packet)
+
+        ## Verify the packet is correct
+        preamble = int(unpacked_packet['Zero Bytes'], 16)
+        if preamble != 0:
+            print(f"[DECODER] [ERROR] Invalid packet - Zerro padding not accurate: {preamble}")
+            return None
+        
+        num_of_data_1 = int(unpacked_packet["Number of Data 1 (Records)"], 16)
+        num_of_data_2 = int(unpacked_packet["Number of Data 2 (Number of Total Records)"], 16)
+        if num_of_data_1 != num_of_data_2:
+            print(f"[DECODER] [ERROR] Invalid packet - The Number of Data 1 and 2 are not equal: DATA1={num_of_data_1}, DATA2={num_of_data_2}")
+            return None
+        
+        if len(unpacked_packet['Data Records']) != num_of_data_1:
+            print(f"[DECODER] [ERROR] Invalid packet - The Number of Records and Data 1 are equal: REC_LEN={len(unpacked_packet['Data Records'])}, DATA1={num_of_data_1}, DATA2={num_of_data_1}")
+            return None
+        
+        ## Decode the data records
+        avl_records = []
+        for avl_data in unpacked_packet['Data Records']:
+            avl_record = {}
+            # Timestamp – a difference, in milliseconds, between the current time and midnight, January, 1970 UTC (UNIX time).
+            avl_record['timestamp'] = self.decode_timestamp(avl_data['Timestamp'])
+
+            # Priority – field which define AVL data priority.
+            avl_record['priority'] = self.decode_priority(avl_data['Priority'])
+
+            # GPS Element – location information of the AVL data.
+            avl_record['longitude'] = self.decode_coordinate(avl_data['Longitude'])  # Longitude – east – west position.
+            avl_record['latitude'] = self.decode_coordinate(avl_data['Latitude'])  # Latitude – north – south position.
+            avl_record['altitude'] = int(avl_data['Altitude'], 16)  # Altitude – meters above sea level.
+            avl_record['angle'] = int(avl_data['Angle'], 16)  # Angle – degrees from north pole.
+            avl_record['satellites'] = int(avl_data['Satellites'], 16)  # Satellites – number of visible satellites.
+            avl_record['speed'] = int(avl_data['Speed'], 16)  # Speed – speed calculated from satellites.
+
+            ## IO Element – additional configurable information from device.
+            io_elements = []
+            for io_element in avl_data['One Byte IO'].items():
+                io_elements.append(self.decode_io_elements(io_element))
+            for io_element in avl_data['Two Bytes IO'].items():
+                io_elements.append(self.decode_io_elements(io_element))
+            for io_element in avl_data['Four Bytes IO'].items():
+                io_elements.append(self.decode_io_elements(io_element))
+            for io_element in avl_data['Eight Bytes IO'].items():
+                io_elements.append(self.decode_io_elements(io_element))
+
+            # TODO Add Events logic here
+            # io_elements.append(self.decode_io_elements(avl_data['Event IO ID'].items()))
+
+            avl_record['io_elements'] = io_elements
+
+
+            avl_records.append(avl_record)
+        
+        data['data_length'] = int(unpacked_packet['Data Field Length'], 16)
+        data['records_length'] = int(unpacked_packet['Number of Data 1 (Records)'], 16)
+        data['avl_records'] = avl_records
+
+
+        return data
+
     def get_imei(self, imei_data):
 
         # Extract IMEI length from the first two bytes

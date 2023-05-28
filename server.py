@@ -54,7 +54,7 @@ class ClientThread(Thread):
                             self.conn.send('\x01'.encode('utf-8'))
                         elif self.step == 2:
                             decoder = Decoder()
-                            len_records = decoder.decode_data(received)
+                            len_records, data = decoder.decode_data(received)
                             if len_records == 0:
                                 self.conn.send('\x00'.encode('utf-8'))
                                 self.conn.close()
