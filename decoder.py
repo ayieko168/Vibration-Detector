@@ -11,7 +11,6 @@ class Decoder:
     def __init__(self):
         
         self.avl_ids = {}
-        self.data_length = None
 
         ## read the alv IDS dictionary
         with open('avl_ids.json') as f:
@@ -216,7 +215,7 @@ class Decoder:
 
         ## Break down the packets into the individual bytes of data as per the Teltonika AVL Protocol
         unpacked_packet = self.extract_packet_data(avl_packet)
-        print(json.dumps(unpacked_packet, indent=2))
+        pprint(unpacked_packet)
 
         ## Verify the packet is correct
         preamble = int(unpacked_packet['Zero Bytes'], 16)
@@ -274,8 +273,6 @@ class Decoder:
         data['data_length'] = int(unpacked_packet['Data Field Length'], 16)
         data['records_length'] = int(unpacked_packet['Number of Data 1 (Records)'], 16)
         data['avl_records'] = avl_records
-
-        self.data_length = data['data_length']
 
         return data
 
