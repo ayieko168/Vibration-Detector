@@ -4,6 +4,7 @@ from time import strftime, gmtime
 import struct
 import binascii
 from pprint import pprint
+import json
 
 from decoder import Decoder
 
@@ -45,7 +46,7 @@ class ClientThread(Thread):
                     received = binascii.hexlify(buff)
                     received_sepd = binascii.hexlify(buff, " ")
                     
-                    print(f"\n[DEBUG]: DATA RECIEVED: {received_sepd}\n\n")
+                    # print(f"\n[DEBUG]: DATA RECIEVED: {received_sepd}\n\n")
                     
                     if len(received) > 2:
                         if self.step == 1:
@@ -64,6 +65,8 @@ class ClientThread(Thread):
                                 self.conn.send(struct.pack("!L", len_records))
                                 self.log("Done! Closing Connection")
                                 self.conn.close()
+                            
+                            print(f"[DEBUG] DATA: \n{json.dumps(data, indent=2)}")
                     else:
                         self.conn.send('\x00'.encode('utf-8'))
                 except socket.error as err:
