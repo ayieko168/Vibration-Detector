@@ -265,7 +265,7 @@ class Decoder:
             # TODO Add Events logic here
             # io_elements.append(self.decode_io_elements(avl_data['Event IO ID'].items()))
 
-            # avl_record['io_elements'] = io_elements
+            avl_record['io_elements'] = io_elements
 
 
             avl_records.append(avl_record)
