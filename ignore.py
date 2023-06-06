@@ -10,3 +10,9 @@ longitude = b'ff3df852'
 # pprint()
 print(json.dumps(decoder.decode_data(packet1), indent=2))
 
+# with open('avl_ids.json', 'r') as f:
+#     avl_ids = json.load(f)
+
+#     for 
+
+

@@ -173,14 +173,39 @@ class Decoder:
             return "PANIC"
 
     def decode_io_elements(self, io_packet):
-        key, val = io_packet
-        # print(key, val)
 
-        io_id = int(key, 16)
+        ## Extract the id and value from the packet
+        element_id, val = io_packet
+
+        ## Convert the extracted values from hex to integers
+        element_id = int(element_id, 16)
         val = int(val, 16)
         
-        result = self.avl_ids[str(io_id)]
-        result["Value"] = val
+        ## Get the io_element defination from the avl ids dictionary lookup
+        # also add the sent io value to the dictionary.
+        result_dict = self.avl_ids[str(element_id)]
+        result_dict["Value"] = val
+
+        ## Format the data in the format: Property Name, (Value * multimlier [units])
+        # if Description has data as a key
+        property_value = ""
+        if result_dict['Description'].get('data') is not None:
+            if result_dict['Multiplier'] != '-':
+                property_value = f"{val * float(result_dict['Multiplier'])}"
+            else:
+                property_value = f"{val}"
+
+            if result_dict['Units'] != '-':
+                    property_value += f" [{result_dict['Units']}]"
+        else:
+            property_value = f"{result_dict['Description'][str(val)]}"
+        
+        ## Contstruct the data dictionary
+        result = {
+            "Property Name": result_dict['Property Name'],
+            "Property Value": property_value
+        }
+
 
         return result
 
