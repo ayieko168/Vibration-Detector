@@ -213,25 +213,11 @@ class Decoder:
         # Convert hex string to integer
         coordinate_int = int(coordinate_hex, 16)
 
-        # Check if the coordinate is negative
-        if coordinate_int & (1 << 31):
-            # If negative, convert to positive by flipping the sign bit
-            coordinate_int = coordinate_int ^ 0xFFFFFFFF
+        # Apply the coordinate transformation formula
+        coordinate_int = coordinate_int / 10000000
+        # coordinate_int = coordinate_int + (coordinate_int /)
 
-        # Extract individual components
-        degrees = coordinate_int // 10000000
-        minutes = (coordinate_int % 10000000) // 100000
-        seconds = (coordinate_int % 100000) // 1000
-        milliseconds = coordinate_int % 1000
-
-        # Calculate the decimal value of the coordinate
-        decimal_coordinate = (degrees + minutes / 60 + seconds / 3600 + milliseconds / 3600000) * 10000000
-
-        # Adjust the sign if longitude is in west or latitude in south
-        if coordinate_int & (1 << 31):
-            decimal_coordinate *= -1
-
-        return decimal_coordinate
+        return coordinate_hex
 
     def decode_data(self, avl_packet):
         
@@ -318,3 +304,11 @@ class Decoder:
 
         return imei
 
+
+if __name__ == '__main__':
+    decoder = Decoder()
+    print(decoder.decode_coordinate('15ffaf43')) #lon
+    print(decoder.decode_coordinate('ff3df92b')) #lat
+
+
+    # print(decoder.decode_coordinate('209CCA80'))
