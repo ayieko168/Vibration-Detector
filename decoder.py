@@ -217,7 +217,7 @@ class Decoder:
         coordinate_int = coordinate_int / 10000000
         # coordinate_int = coordinate_int + (coordinate_int /)
 
-        return coordinate_hex
+        return coordinate_int
 
     def decode_data(self, avl_packet):
         
