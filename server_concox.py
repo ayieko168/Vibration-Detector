@@ -50,15 +50,19 @@ class ClientThread(Thread):
                     
                     handshake = decoder.decode_1st_hand_shake(received)
                     if handshake['Start Bit'] == '7878':
-                        # Found a valid handshake, create new response packet and send to device
-                        response_packet = decoder.construct_response(
-                            handshake['Protocol Number'], 
-                            handshake['Information Serial Number'], 
-                            handshake['Error Check'])
-                        response_packet = decoder.convert_to_hex_byte(response_packet)
-                        self.conn.send(response_packet)
+                        # Found a valid packet, create new response packet and send to device
+
+                        ## If handshake:
+                        if handshake['Protocol Number'] == '01':
+                            response_packet = decoder.construct_response(
+                                handshake['Protocol Number'], 
+                                handshake['Information Serial Number'], 
+                                handshake['Error Check'])
+                            response_packet = decoder.convert_to_hex_byte(response_packet)
+                            self.conn.send(response_packet)
                     else:
                         # Invalid packet
+                        print("[DEBUG]: Invalid packet")
                         self.conn.send('\x00'.encode('utf-8'))
 
                     # if len(received) > 2:
