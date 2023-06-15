@@ -48,6 +48,19 @@ class ClientThread(Thread):
                     
                     print(f"\n[DEBUG]: DATA RECIEVED: {received_sepd}\n\n")
                     
+                    handshake = decoder.decode_1st_hand_shake(received)
+                    if handshake['Start Bit'] == '7878':
+                        # Found a valid handshake, create new response packet and send to device
+                        response_packet = decoder.construct_response(
+                            handshake['Protocol Number'], 
+                            handshake['Information Serial Number'], 
+                            handshake['Error Check'])
+                        response_packet = decoder.convert_to_hex_byte(response_packet)
+                        self.conn.send(response_packet)
+                    else:
+                        # Invalid packet
+                        self.conn.send('\x00'.encode('utf-8'))
+
                     # if len(received) > 2:
                     #     if self.step == 1:
                     #         self.step = 2

@@ -312,10 +312,66 @@ class ConcoxDecoder:
     def decode_data(self, data_packet) -> dict:
         pass
 
+    def decode_1st_hand_shake(self, byte_string):
+        """
+        The initial handshake sent by the device to start packet transmission to the server.
+        """
+        
+        byte_string = byte_string.decode('utf-8').upper()
+        byte_string = byte_string.strip().replace(' ', '')
+
+        packet = {}
+        packet['Start Bit'] = byte_string[:4]
+        packet['Packet Length'] = byte_string[4:6]
+        packet['Protocol Number'] = byte_string[6:8]
+        packet['Terminal ID'] = byte_string[8:24]
+        packet['Information Serial Number'] = byte_string[24:28]
+        packet['Error Check'] = byte_string[28:32]
+        packet['Stop Bit'] = byte_string[32:]
+
+        return packet
+
+    def construct_response(protocol_number, serial_number, error_check):
+        start_bit = '7878'
+        packet_length = '05'
+        stop_bit = '0D0A'
+        response_packet = start_bit + packet_length + protocol_number + serial_number + error_check + stop_bit
+        return response_packet
+
+    def handshake_response(self, handshake_1st: dict) -> dict:
+        
+        # Start bit
+        response_packet = "7878"
+
+        # Packet length
+        response_packet += str(hex(len(
+            handshake_1st['Protocol Number'] + 
+            handshake_1st['Terminal ID'] + 
+            handshake_1st['Information Serial Number'] + 
+            handshake_1st['Error Check']
+            ))).replace('0x', '')
+        
+        # Protocol Number
+        response_packet += str(handshake_1st['Protocol Number'])
+
+        # Information Serial Number
+        response_packet += str(handshake_1st['Information Serial Number'])
+
+        # Error Check
+
+        # Stop bit
+        response_packet += '0D0A'
+
+        response_packet = response_packet.upper()
+        return response_packet
+    
+    def convert_to_hex_byte(self, s):
+        return ' '.join([hex(ord(c)).replace('0x', '\\x') for c in s]).encode('utf-8')
+
+
 if __name__ == '__main__':
     decoder = ConcoxDecoder()
-    print(decoder.decode_coordinate('15ffaf43')) #lon
-    print(decoder.decode_coordinate('ff3df92b')) #lat
+    print(decoder.handshake_response({'Start Bit': '7878', 'Packet Length': '0d', 'Protocol Number': '01', 'Terminal ID': '0358657103213430', 'Information Serial Number': '0004', 'Error Check': 'fe11', 'Stop Bit': '0d0a'}))
 
 
     # print(decoder.decode_coordinate('209CCA80'))
