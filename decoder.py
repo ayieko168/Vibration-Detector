@@ -331,7 +331,7 @@ class ConcoxDecoder:
 
         return packet
 
-    def construct_response(protocol_number, serial_number, error_check):
+    def construct_response(self, protocol_number, serial_number, error_check):
         start_bit = '7878'
         packet_length = '05'
         stop_bit = '0D0A'
