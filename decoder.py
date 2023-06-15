@@ -22,7 +22,6 @@ class Decoder:
             
         return ' '.join(data[i:i+2] for i in range(0, len(data), 2))
     
-
     def extract_packet_data(self, avl_packet):
 
         # Breakdown the AVL Data Packet
@@ -305,8 +304,16 @@ class Decoder:
         return imei
 
 
+class ConcoxDecoder:
+
+    def __init__(self) -> None:
+        pass
+
+    def decode_data(self, data_packet) -> dict:
+        pass
+
 if __name__ == '__main__':
-    decoder = Decoder()
+    decoder = ConcoxDecoder()
     print(decoder.decode_coordinate('15ffaf43')) #lon
     print(decoder.decode_coordinate('ff3df92b')) #lat
 
