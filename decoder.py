@@ -331,12 +331,12 @@ class ConcoxDecoder:
 
         return packet
 
-    def construct_response(self, protocol_number, serial_number, error_check):
+    def construct_response(self, protocol_number, serial_number, error_check) -> bytes:
         start_bit = '7878'
         packet_length = '05'
         stop_bit = '0D0A'
         response_packet = start_bit + packet_length + protocol_number + serial_number + error_check + stop_bit
-        return response_packet
+        return response_packet.encode('utf-8')
 
     def handshake_response(self, handshake_1st: dict) -> dict:
         
