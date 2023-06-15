@@ -54,8 +54,8 @@ class ClientThread(Thread):
                         print("[DEBUG]: Found a valid packet, create new response packet and send to device")
 
                         ## If a login handshake:
-                        print("[DEBUG]: Is a login handshake.")
                         if handshake['Protocol Number'] == '01':
+                            print("[DEBUG]: Is a login handshake.")
                             response_packet = decoder.construct_response(
                                 handshake['Protocol Number'], 
                                 handshake['Information Serial Number'], 
