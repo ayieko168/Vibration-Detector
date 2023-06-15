@@ -60,7 +60,7 @@ class ClientThread(Thread):
                                 handshake['Protocol Number'], 
                                 handshake['Information Serial Number'], 
                                 handshake['Error Check'])
-                            response_packet = decoder.convert_to_hex_byte(response_packet)
+                            # response_packet = decoder.convert_to_hex_byte(response_packet)
                             self.conn.send(response_packet)
                             print(f'[DEBUG]: Sent response: {response_packet}')
                     else:
