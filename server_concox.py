@@ -10,7 +10,7 @@ from decoder import *
 
 # Global Variables
 host = '0.0.0.0'
-port = 6543
+port = 6544
 
 
 ## EXAMPLE DATA
@@ -32,10 +32,11 @@ class ClientThread(Thread):
         self.imei = "unknown"
 
     def log(self, msg):
-        print(f"{self.logTime}\t{self.identifier}\t{msg}")
+        print(f"[SERVER]: {self.logTime}\t{self.identifier}\t{msg}")
         pass
 
     def run(self):
+        self.log(f"NEW CONNECTION ({self.identifier})")
         client = self.conn
         if client:
             self.identifier = self.addr[0]

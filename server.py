@@ -1,10 +1,11 @@
 import socket
 from threading import Thread
-from time import strftime, gmtime
+from time import strftime, gmtime, time
 import struct
 import binascii
 from pprint import pprint
 import json
+from datetime import datetime
 
 from decoder import Decoder
 
@@ -27,7 +28,7 @@ class ClientThread(Thread):
         self.conn = _socket[0]
         self.addr = _socket[1]
         self.identifier = "None"
-        self.logTime = strftime('%d %b %H:%M:%S', gmtime())
+        self.logTime = datetime.now()
         self.step = 1
         self.imei = "unknown"
 
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     
     # exit(0)
 
-    print(f"SERVER. {strftime('%d %b %H:%M:%S', gmtime())}")
+    print(f"SERVER. {datetime.now()}")
     print(f"Server Started at port: {port}")
     server = None
     try:
