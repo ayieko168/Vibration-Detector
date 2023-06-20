@@ -352,86 +352,49 @@ class ConcoxDecoder:
     def decode_data(self, data_packet) -> dict:
         pass
 
-    def decode_1st_hand_shake(self, byte_string):
+    def decode_packet_format(self, packet: bytes) -> dict:
         """
-        The initial handshake sent by the device to start packet transmission to the server.
+        Function to split the data packet sent by the device for easy parsing.
+        Splits the data usingnthe general format of sent data packet.
         """
         
-        byte_string = byte_string.decode('utf-8').upper()
-        byte_string = byte_string.strip().replace(' ', '')
+        # print(packet)
+        
+        packet = packet.decode('utf-8').upper()
+        hexbytes = packet.strip().replace(' ', '')
+        
+        split_dict = {
+            "start_bit": hexbytes[:4].upper(),
+            "packet_length": hexbytes[4:6].upper(),
+            "protocol_number": hexbytes[6:8].upper(),
+            "information_content": hexbytes[8:-12].upper(),
+            "information_serial_number": hexbytes[-12:-8].upper(),
+            "error_check": hexbytes[-8:-4].upper(),
+            "stop_bit": hexbytes[-4:].upper()
+        }
 
-        packet = {}
-        packet['Start Bit'] = byte_string[:4]
-        packet['Packet Length'] = byte_string[4:6]
-        packet['Protocol Number'] = byte_string[6:8]
-        packet['Terminal ID'] = byte_string[8:24]
-        packet['Information Serial Number'] = byte_string[24:28]
-        packet['Error Check'] = byte_string[28:32]
-        packet['Stop Bit'] = byte_string[32:]
+        return split_dict
 
-        return packet
-
-    def construct_response(self, protocol_number, serial_number, error_check) -> bytes:
+    def construct_response(self, protocol_number, serial_number) -> bytes:
         start_bit = '7878'
         packet_length = '05'
         stop_bit = '0D0A'
+        error_check = self.calc_crc(packet_length+protocol_number+serial_number)
         response_packet = start_bit + packet_length + protocol_number + serial_number + error_check + stop_bit
-        return response_packet.encode('utf-8')
+        return bytes.fromhex(response_packet)
 
-    def handshake_response(self, handshake_1st: dict) -> dict:
-        
-        # Start bit
-        response_packet = "7878"
-
-        # Packet length
-        response_packet += str(hex(len(
-            handshake_1st['Protocol Number'] + 
-            handshake_1st['Terminal ID'] + 
-            handshake_1st['Information Serial Number'] + 
-            handshake_1st['Error Check']
-            ))).replace('0x', '')
-        
-        # Protocol Number
-        response_packet += str(handshake_1st['Protocol Number'])
-
-        # Information Serial Number
-        response_packet += str(handshake_1st['Information Serial Number'])
-
-        # Error Check
-
-        # Stop bit
-        response_packet += '0D0A'
-
-        response_packet = response_packet.upper()
-        return response_packet
-    
-    def convert_to_hex_byte(self, s):
-        return ' '.join([hex(ord(c)).replace('0x', '\\x') for c in s]).encode('utf-8')
-
-    def crc_check(self, data):
-        """Calculates the CRC error check value for the given data.
+    def calc_crc(self, data):
+        """Calculates the CRC 16 error check value for the given data. Uses CRC 16 x25
 
         Args:
-            data: The data to calculate the CRC error check value for.
-
+            data: The data to calculate the CRC error check value for. hex string
+            EXAMPLE: '0D0101234567890123450001'
         Returns:
             The CRC error check value.
+            EXAMPLE: '8CDD'
         """
 
-        # Initialize the CRC register to 0.
-        crc_register = 0
-
-        # For each byte in the data, do the following:
-        for byte in data:
-
-            # XOR the byte with the CRC register.
-            crc_register ^= byte
-
-            # Divide the result by the CRC polynomial.
-            crc_register = crc_register % 0x10000
-
-        # The final value of the CRC register is the CRC error check value.
-        return crc_register
+        return hex(libscrc.x25(bytes.fromhex(data)))[2:].zfill(4).upper()
 
 
 
@@ -444,15 +407,15 @@ if __name__ == '__main__':
     # print(decoder.handshake_response({'Start Bit': '7878', 'Packet Length': '0d', 'Protocol Number': '01', 'Terminal ID': '0358657103213430', 'Information Serial Number': '0004', 'Error Check': 'fe11', 'Stop Bit': '0d0a'}))
     # print(decoder.crc_itu(b'01'))
 
-    crc = decoder.crc_check([0x01, 0x0001])
+    crc = decoder.decode_packet_format(b'78 78 0D 01 01 23 45 67 89 01 23 45 00 01 8C DD 0D 0A')
     print(crc)
     # print(decoder.decode_coordinate('209CCA80'))
     
     
     #############################  Teltonika Tests  ######################################
-    tel_decoder = Decoder()
-    z = tel_decoder.decode_data("000000000000004308020000016B40D57B480100000000000000000000000000000001010101000000000000016B40D5C198010000000000000000000000000000000101010101000000020000252C")
-    print(json.dumps(z, indent=2))
+    # tel_decoder = Decoder()
+    # z = tel_decoder.decode_data("000000000000004308020000016B40D57B480100000000000000000000000000000001010101000000000000016B40D5C198010000000000000000000000000000000101010101000000020000252C")
+    # print(json.dumps(z, indent=2))
     
 
     

@@ -14,10 +14,8 @@ port = 6544
 
 
 ## EXAMPLE DATA
-
-example_imei = b"000F333536333037303432343431303133"
-example_avl = b"00000000000004a7080c000001885bb720200015ffae49ff3df8a6064600ad0b0000001407ef01f0011504c80045010100b30009b50009b60006424c6b430fbf4400000900ae11ffd612000f13fc1102f10000f99e100000d15b020b0000000213fed40b0e00000001000dcf3e000001885bb6e5880015ffae6aff3df852064600ad0b0000001407ef01f0011503c80045010100b30009b5000fb60007424c7d430fc14400000900ae11ffd212001b13fc1802f10000f99e100000d15b020b0000000213fed40b0e00000001000dcf3e000001885bb6ddb80015ffaf32ff3df77a064700a80b000c001407ef01f0011503c80045010100b30009b5000fb60007424c24430fb04400000900ae11ffce12001b13fc1502f10000f99e100000d15b020b0000000213fed40b0e00000001000dcf3e000001885bb6d9d00015ffaf21ff3df7ee064800b30a000b001407ef01f0011503c80045010100b30009b50010b60007424c55430fbc4400000900ae11ffd612001713fc1502f10000f99e100000d15b020b0000000213fed40b0e00000001000dcf3e000001885bb6ca300015ffafc8ff3df884064800bd080007001407ef01f0011503c80045010100b30009b5000bb60009424c95430fc54400000900ae11ffd212001b13fc1802f10000f99e100000d155020b0000000213fed40b0e00000001000dcf3e000001885bb6aed80015ffb00bff3df7ff06480005080007001407ef01f0011503c80045010100b30009b5000bb60009424c57430fba4400000900ae11ffce12001b13fc0d02f10000f99e100000d155020b0000000213fed40b0e00000001000dcf3e000001885bb68f980015ffafa7ff3df6c206490015090000001407ef01f0011504c80045010100b30009b5000ab60007424c63430fbc4400000900ae11ffd212001b13fc1502f10000f99e100000d148020b0000000213fed40b0e00000001000dcf3e000001885bb655000015ffb080ff3df392064d00a80a0006001407ef01f0011504c80045010100b30009b50010b60007424c2e430fb34400000900ae11ffd212001b13fc0d02f10000f99e100000d148020b0000000213fed40b0e00000001000dcf3e000001885bb64d300015ffb090ff3df33e064d009d09000a001407ef01f0011504c80045010100b30009b5000ab60007424c74430fc14400000900ae11ffce12001f13fbf102f10000f99e100000d148020b0000000213fed40b0e00000001000dcf3e000001885bb635c00015ffaf75ff3df726064e00a909000e001407ef01f0011504c80045010100b30009b5000ab60007424c68430fbe4400000900ae11ffd212001f13fc1502f10000f99e100000d13e020b0000000213fed40b0e00000001000dcf3e000001885bb62df00015ffaf43ff3df8b6064e00ba090009001407ef01f0011504c80045010100b30009b50010b60008424c89430fc54400000900ae11ffd212001b13fc1502f10000f99e100000d138020b0000000213fed40b0e00000001000dcf3e000001885bb62a080015ffaf43ff3df92b064d00c6090007001407ef01f0011504c80045010100b30009b5000ab60007424c8e430fc44400000900ae11ffd212001713fc1502f10000f99e100000d138020b0000000213fed40b0e00000001000dcf3e0c00003767".strip()
-
+example_login_packet = b"78 78 0d 01 03 58 65 71 03 21 34 30 00 06 dd 03 0d 0a"
+example_location_packet = b"78 78 1f 12 17 06 09 0c 04 0c c6 00 23 15 ca 03 f3 54 34 0d 10 88 02 7f 02 07 f7 00 08 ad 00 07 57 25 0d 0a"
 ## EXAMPLE DATA END
 
 
@@ -49,24 +47,39 @@ class ClientThread(Thread):
                     
                     print(f"\n[DEBUG]: DATA RECIEVED: {received_sepd}\n\n")
                     
-                    handshake = decoder.decode_1st_hand_shake(received)
-                    if handshake['Start Bit'] == '7878':
+                    ## Split the data packet according to the packet format.
+                    packet_structure = decoder.decode_packet_format(received)
+                    
+                    ## Verify the structure of the packet
+                    if packet_structure.get('start_bit') == '7878' and packet_structure.get('stop_bit') == '0D0A':
                         # Found a valid packet, create new response packet and send to device
-                        print("[DEBUG]: Found a valid packet, create new response packet and send to device")
-
+                        print("[DEBUG]: Found a valid packet, running conditional protocol according to protocol number...")
+                        
                         ## If a login handshake:
-                        if handshake['Protocol Number'] == '01':
-                            print("[DEBUG]: Is a login handshake.")
-                            response_packet = decoder.construct_response(
-                                handshake['Protocol Number'], 
-                                handshake['Information Serial Number'], 
-                                handshake['Error Check'])
-                            # response_packet = decoder.convert_to_hex_byte(response_packet)
-                            self.conn.send(response_packet)
-                            print(f'[DEBUG]: Sent response: {response_packet}')
+                        if packet_structure.get('protocol_number') == '01':
+                            
+                            print(f"[DEBUG] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake.")
+                            print(f"[VALID CONNECTION] Valid connection from IMEI: {packet_structure.get('information_content')}")
+                            
+                            if self.step == 1:
+                                # Achknowledge login att/tempt in step 1
+                                
+                                response_packet = decoder.construct_response(
+                                    packet_structure['protocol_number'], 
+                                    packet_structure['information_serial_number']
+                                    )
+                                self.conn.send(response_packet)
+                                print(f'[DEBUG]: Sent response: {response_packet}')
+                                
+                                self.step = 2
+                            
+                            elif self.step == 2:
+                                # Await for the 
+                                print(f"[DEBUG] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake part 2.")
+                                print(f"Decode {received}")
                     else:
                         # Invalid packet
-                        print("[DEBUG]: Invalid packet")
+                        print(f"[ERROR]: Invalid packet: {packet_structure}")
                         self.conn.send('\x00'.encode('utf-8'))
 
                     # if len(received) > 2:

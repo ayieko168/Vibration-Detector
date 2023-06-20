@@ -1,5 +1,5 @@
-# import libscrc
-# import binascii
+import libscrc
+import binascii
 
 def crc_check(string_crc, error_check):
     crc16 = libscrc.x25(string_crc)
@@ -21,6 +21,19 @@ def crc_check(string_crc, error_check):
         return True
     else:
         return False
+    
+    
+def calculate_error_check(packet):
+    # Convert the packet to bytes
+    packet_bytes = bytes.fromhex(packet)
+
+    # Perform XOR operation on all bytes except start and stop bits
+    error_check = 0
+    for byte in packet_bytes:
+        error_check ^= byte
+
+    # Return the error check value as a hex string
+    return hex(error_check)[2:].zfill(2).upper()
 
 
 def crc16x_25_bit(data, crc=0xFFFF):
@@ -35,30 +48,14 @@ def crc16x_25_bit(data, crc=0xFFFF):
     crc ^= 0xffff
     return crc
 
-def decode_codec8_longitude(hex_byte):
-    # Convert the hex byte string to an integer
-    byte_value = int(hex_byte, 16)
-    
-    # Check the sign bit (bit 31)
-    if byte_value & 0x80000000:
-        # Perform two's complement for negative values
-        byte_value = byte_value - 0xFFFFFFFF - 1
-    
-    # Divide by 10000000 to get the decimal value
-    longitude = byte_value / 10000000.0
-    
-    return longitude
-
-hex_byte = '15f27275'
-longitude = decode_codec8_longitude(hex_byte)
-
-print(longitude)
 
 
 
-# string_crc = bytes.fromhex('0d0001') #+ b'0123456789012345' +code+time_zone+snol
+
+# string_crc = bytes.fromhex() #+ b'0123456789012345' +code+time_zone+snol
 # error_check = bytes.fromhex('8CDD')
 
 # print(string_crc)
-# bollen = crc16x_25_bit(string_crc)
-# print(bollen)
+
+bollen = crc16x_25_bit(b'0D0101234567890123450001')
+print(hex(libscrc.x25(bytes.fromhex('0D0101234567890123450001')))[2:].zfill(4).upper())
