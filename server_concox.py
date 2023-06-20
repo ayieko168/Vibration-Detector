@@ -14,7 +14,7 @@ port = 6544
 
 
 ## EXAMPLE DATA
-example_login_packet = b"78 78 0d 01 03 58 65 71 03 21 34 30 00 06 dd 03 0d 0a"
+example_login_packet =    b"78 78 0d 01 03 58 65 71 03 21 34 30 00 06 dd 03 0d 0a"
 example_location_packet = b"78 78 1f 12 17 06 09 0c 04 0c c6 00 23 15 ca 03 f3 54 34 0d 10 88 02 7f 02 07 f7 00 08 ad 00 07 57 25 0d 0a"
 ## EXAMPLE DATA END
 
@@ -55,28 +55,35 @@ class ClientThread(Thread):
                         # Found a valid packet, create new response packet and send to device
                         print("[DEBUG]: Found a valid packet, running conditional protocol according to protocol number...")
                         
-                        ## If a login handshake:
+                        ## Login Message
                         if packet_structure.get('protocol_number') == '01':
                             
                             print(f"[DEBUG] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake.")
                             print(f"[VALID CONNECTION] Valid connection from IMEI: {packet_structure.get('information_content')}")
                             
-                            if self.step == 1:
-                                # Achknowledge login att/tempt in step 1
-                                
-                                response_packet = decoder.construct_response(
-                                    packet_structure['protocol_number'], 
-                                    packet_structure['information_serial_number']
-                                    )
-                                self.conn.send(response_packet)
-                                print(f'[DEBUG]: Sent response: {response_packet}')
-                                
-                                self.step = 2
+                            # Achknowledge login and send responce to device
+                            response_packet = decoder.construct_response(
+                                packet_structure['protocol_number'], 
+                                packet_structure['information_serial_number']
+                                )
+                            self.conn.send(response_packet)
+                            print(f'[DEBUG]: Sent response: {response_packet}')
                             
-                            elif self.step == 2:
-                                # Await for the 
-                                print(f"[DEBUG] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake part 2.")
-                                print(f"Decode {received}")
+                            # Save the imei number
+                            self.imei = packet_structure.get('information_content')
+                        
+                        ## Location Data 
+                        elif packet_structure.get('protocol_number') == '12':
+                            print(f"[DEBUG] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a location message packet.")
+                            print(f"[VALID CONNECTION] Valid connection from IMEI: {self.imei}")
+                            
+                            decoded_location_data = decoder.location_decoder(received)
+                            print(f"[DEBUG] [LOCATION DATA] :: {json.dumps(decoded_location_data)}")
+                        
+                        else:
+                            print(f"[DEBUG] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is UNKNOWN.")
+                            print(f"[VALID CONNECTION] Valid connection from IMEI: {self.imei}")
+                                
                     else:
                         # Invalid packet
                         print(f"[ERROR]: Invalid packet: {packet_structure}")
