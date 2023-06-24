@@ -5,6 +5,9 @@ from pprint import pprint
 import json
 import libscrc
 
+serial_counter = 1
+server_flag = 233
+
 ## TODO: Decode network operators code from: https://xphone24.com/operator-codes.php#:~:text=Operator%20code%20is%20a%20unique%20number%20assigned%20to,Network%20Code%20%28MNC%29%20and%20Mobile%20Country%20Code%20%28MCC%29.
 
 class Decoder:
@@ -313,7 +316,16 @@ class Decoder:
 class ConcoxDecoder:
 
     def __init__(self) -> None:
+        
         pass
+    
+    def construct_response(self, protocol_number, serial_number) -> bytes:
+        start_bit = '7878'
+        packet_length = '05'
+        stop_bit = '0D0A'
+        error_check = self.calc_crc(packet_length+protocol_number+serial_number)
+        response_packet = start_bit + packet_length + protocol_number + serial_number + error_check + stop_bit
+        return bytes.fromhex(response_packet)
     
     def location_decoder(self, data_packet: bytes) -> dict:
         """
@@ -323,10 +335,6 @@ class ConcoxDecoder:
         
         Args: data_packet: The hexbyte data packet containing the location infromed fro the protocol number: 12
         """
-        
-        ## Clean the data packet
-        # data_packet = data_packet.decode('utf-8').upper()
-        # data_packet = data_packet.strip().replace(' ', '')
         
         ## Deconstruct the data packet to its component bytes
         packet_structure = self.decode_packet_format(data_packet)
@@ -376,8 +384,55 @@ class ConcoxDecoder:
         }
         
         return decoded_data
+    
+    def status_decoder(self, data_packet: bytes) -> tuple[dict, bytes]:
+        """
+        Decode infromation from the status infromation packet.
         
-
+        Returns: Dictionary with decoded infromation.
+                 Response byte string to the device in ascii.
+        
+        Args: data_packet: The full hexbyte data packet containing the status infromation for the protocol number: 13
+        """
+        
+        ## Deconstruct the data packet to its component bytes
+        packet_structure = self.decode_packet_format(data_packet)
+        # print(json.dumps(packet_structure, indent=2))
+        
+        ### Status Infromation
+        status_info_packet = packet_structure.get('information_content')
+        
+        # Terminal INfromation Content - 1 Byte
+        terminal_info_content = self.decode_terminal_information(status_info_packet[:2])
+        # Voltage Level - 1 byte
+        voltage_level = self.decode_voltage_level(status_info_packet[2:4])
+        # GSM Signal Strength - 1 byte
+        gsm_signal_strength = self.decode_gsm_signal_strength(status_info_packet[4:6])
+        # Alarm/Language - 2 Bytes
+        alarm_language = self.decode_alarm_language(status_info_packet[6:10])
+        
+        decoded_packet = {
+        "terminal_info_content": terminal_info_content,
+        "voltage_level": voltage_level,
+        "gsm_signal_strength": gsm_signal_strength,
+        "alarm_language": alarm_language,
+        }
+        
+        ### Construct the response packet
+        start_bit = '7878'
+        packet_length = '05'
+        stop_bit = '0D0A'
+        error_check = self.calc_crc(packet_length + packet_structure.get('protocol_number') + packet_structure.get('information_serial_number'))
+        response_packet = start_bit + packet_length + packet_structure.get('protocol_number') + packet_structure.get('information_serial_number') + error_check + stop_bit
+        response_packet = bytes.fromhex(response_packet)
+        
+        # print(decoded_packet, response_packet)
+        
+        return decoded_packet, response_packet
+        
+        
+    
+    ##### HELPER FUNCTIONS  ##### 
     def decode_packet_format(self, packet: bytes) -> dict:
         """
         Function to split the data packet sent by the device for easy parsing.
@@ -400,14 +455,6 @@ class ConcoxDecoder:
         }
 
         return split_dict
-
-    def construct_response(self, protocol_number, serial_number) -> bytes:
-        start_bit = '7878'
-        packet_length = '05'
-        stop_bit = '0D0A'
-        error_check = self.calc_crc(packet_length+protocol_number+serial_number)
-        response_packet = start_bit + packet_length + protocol_number + serial_number + error_check + stop_bit
-        return bytes.fromhex(response_packet)
 
     def calc_crc(self, data):
         """Calculates the CRC 16 error check value for the given data. Uses CRC 16 x25
@@ -453,8 +500,6 @@ class ConcoxDecoder:
         course_binary = binary_value[6:]
         course = int(course_binary, 2)
         
-        print(course)
-
         status = {
             'real_time_GPS': bool(int(binary_value[2])),
             'GPS_tracking': bool(int(binary_value[3])),
@@ -464,17 +509,131 @@ class ConcoxDecoder:
 
         return course, status
 
+    def decode_terminal_information(self, terminal_info_packet: str):
         
+        binary = bin(int(terminal_info_packet, 16))[2:].zfill(8)
+                
+        status = {
+            'Oil and Electricity': 'Connected' if binary[0] == '0' else 'Disconnected',
+            'GPS Tracking': 'On' if binary[1] == '1' else 'Off',
+            'Alarm': '',
+            'Charge': 'On' if binary[5] == '1' else 'Off',
+            'ACC': 'High' if binary[6] == '1' else 'Low',
+            'Defense': 'Activated' if binary[7] == '1' else 'Deactivated'
+        }
+        
+        alarm_bits = binary[2:5]
+        if alarm_bits == '100':
+            status['Alarm'] = 'SOS'
+        elif alarm_bits == '011':
+            status['Alarm'] = 'Low Battery Alarm'
+        elif alarm_bits == '010':
+            status['Alarm'] = 'Power Cut Alarm'
+        elif alarm_bits == '001':
+            status['Alarm'] = 'Shock Alarm'
+        elif alarm_bits == '000':
+            status['Alarm'] = 'Normal'
+        
+        return status
+    
+    def decode_voltage_level(self, voltage_level_packet: str):
+        try:
+            value = int(voltage_level_packet, 16)
+            if value == 0:
+                return 'No Power (Shutdown)'
+            elif value == 1:
+                return 'Extremely Low Battery'
+            elif value == 2:
+                return 'Very Low Battery (Low Battery Alarm)'
+            elif value == 3:
+                return 'Low Battery'
+            elif value == 4:
+                return 'Medium'
+            elif value == 5:
+                return 'High'
+            elif value == 6:
+                return 'Very High'
+            else:
+                return 'Invalid Range'
+        except ValueError:
+            return 'Invalid Hex String'    
 
+    def decode_gsm_signal_strength(self, gsm_signal_strength_packet):
+        try:
+            value = int(gsm_signal_strength_packet, 16)
+            if value == 0:
+                return 'No Signal'
+            elif value == 1:
+                return 'Extremely Weak Signal'
+            elif value == 2:
+                return 'Very Weak Signal'
+            elif value == 3:
+                return 'Good Signal'
+            elif value == 4:
+                return 'Strong Signal'
+            else:
+                return 'Invalid Signal Strength'
+        except ValueError:
+            return 'Invalid Hex String'
+
+    def decode_alarm_language(self, alarm_lang_packet):
+        try:
+            value = int(alarm_lang_packet, 16)
+            alarm_status = value >> 4  # Get the former bit (alarm status)
+            language = value & 0x0F  # Get the latter bit (language)
+
+            alarm_status_str = 'No Alarm' if alarm_status == 0 else 'Alarm'
+            language_str = 'Chinese' if language == 0x01 else 'English'
+
+            return f'{alarm_status_str} and Language is {language_str}'
+        except ValueError:
+            return 'Invalid Hex String'
+
+    def encode_command_to_device(self, command: str) -> bytes:
+        
+        global serial_counter, server_flag
+        
+        # Calculate the length of the command content
+        command_length = len(command)
+
+        # Construct the communication packet
+        start_bit = "7878"
+        packet_length = "0B"  # Assuming the total length is 11 bytes (including start bit and stop bit)
+        protocol_number = "80"
+        length_of_command = format(command_length + 4, "02X")  # Server Flag Bit (4) + Command Content Length
+        server_flag_bit = hex(server_flag)[2:].zfill(4)  # Placeholder for the server flag bit
+        command_content = command.encode().hex()  # Convert command string to hexadecimal representation
+        information_serial_number = hex(serial_counter)[2:].zfill(4)
+        error_check = self.calc_crc(packet_length + protocol_number + length_of_command + server_flag_bit + command_content + information_serial_number)
+        stop_bit = "0D0A"
+
+        # Concatenate the packet fields
+        packet = start_bit + packet_length + protocol_number + length_of_command + server_flag_bit + command_content + information_serial_number + error_check + stop_bit
+        command_packet = bytes.fromhex(packet)
+        
+        # Increment the counter
+        serial_counter += 1
+        
+        print(packet)
+        return command_packet
+        
+        
+        
+        
+        
 if __name__ == '__main__':
     
     
     decoder = ConcoxDecoder()
 
-    crc = decoder.location_decoder(b'78 78 1f 12 17 06 14 12 12 1c c6 00 22 ed 0b 03 f5 b5 a0 00 10 d3 02 7f 02 0f a8 00 0c e9 00 27 8a 30 0d 0a')
-    # crc = decoder.decode_course_status(b'154c')
+    crc = decoder.status_decoder(b'78 78 08 13 4B 04 03 00 01 00 11 06 1F 0D 0A')
+    # crc = decoder.decode_alarm_language('0002')
     # print(crc)
-    # print(decoder.decode_coordinate('209CCA80'))
+    print(decoder.decode_packet_format(b'78780B800900e94457585823000198B30D0A'))
+    # print(decoder.encode_command_to_device("DWXX#"))
+    
+    # s = "787805130011F9700D0A"
+    # print(" ".join([s[i:i+2] for i in range(0, len(s), 2)]))
     
     
     #############################  Teltonika Tests  ######################################
