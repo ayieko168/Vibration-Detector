@@ -43,7 +43,7 @@ class ClientThread(Thread):
                     # print(f"\n[DEBUG] [{self.addr[0]}] [{datetime.now()}]: DATA RECIEVED: {received_sepd}")
 
                     self.conn.send(f"FROM SERVER: I recieved :: {buff}".encode("utf-8"))
-                    
+                    print()
         
                 except socket.error as err:
                     print(f"[SERVER] [ERROR] [{self.addr[0]}] [{datetime.now()}] Socket Error: {err}")
