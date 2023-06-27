@@ -41,6 +41,8 @@ class ClientThread(Thread):
                     
                     print(f"\n[DEBUG] [{self.addr[0]}] [{datetime.now()}]: DATA RECIEVED RAW: {buff}")
                     # print(f"\n[DEBUG] [{self.addr[0]}] [{datetime.now()}]: DATA RECIEVED: {received_sepd}")
+
+                    self.conn.send(buff)
                     
         
                 except socket.error as err:
