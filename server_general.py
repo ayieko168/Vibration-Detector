@@ -39,7 +39,8 @@ class ClientThread(Thread):
                     received = binascii.hexlify(buff)
                     received_sepd = binascii.hexlify(buff, " ")
                     
-                    print(f"\n[DEBUG] [{self.addr[0]}] [{datetime.now()}]: DATA RECIEVED: {received_sepd}")
+                    print(f"\n[DEBUG] [{self.addr[0]}] [{datetime.now()}]: DATA RECIEVED RAW: {buff}")
+                    # print(f"\n[DEBUG] [{self.addr[0]}] [{datetime.now()}]: DATA RECIEVED: {received_sepd}")
                     
         
                 except socket.error as err:
