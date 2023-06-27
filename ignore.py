@@ -5,5 +5,5 @@ location_data =  """{"protocol_number": "12", "date_time": "2023-06-21 13:48:46"
 status_data = """{"terminal_info_content": {"Oil and Electricity": "Connected", "GPS Tracking": "On", "Alarm": "Normal", "Charge": "On", "ACC": "Low", "Defense": "Activated"}, "voltage_level": "Very High", "gsm_signal_strength": "Strong Signal", "alarm_language": "No Alarm and Language is Chinese"}"""
 
 
-print(json.dumps(json.loads(location_data), indent=2))
+print(json.dumps(json.loads(status_data), indent=2))
 
