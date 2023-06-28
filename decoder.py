@@ -616,21 +616,73 @@ class ConcoxDecoder:
         
         print(packet)
         return command_packet
+
+
+class KarimuDecoder:
+
+    def __init__(self) -> None:
         
+        pass
+    
+    def login_decoder(self, login_packet) -> tuple[bytes, dict]:
+        """
+        Takes the raw login hex bytes packet.
+
+        Response is a tuple containing the following fields:
+         - response packet<bytes> - A response to send to the device
+         - extracted data<dict> - A dictionary containing extracted infromation from the packet.
+        """
+
+        packet_structure = self.decode_packet_format(login_packet)
+
+
+
+    ##### HELPER FUNCTIONS  ##### 
+    def decode_packet_format(self, packet: bytes) -> dict:
+        """
+        Function to split the data packet sent by the device for easy parsing.
+        Splits the data usingnthe general format of sent data packet.
+        """
         
+        # print(packet)
         
+        packet = packet.decode('utf-8').upper()
+        hexbytes = packet.strip().replace(' ', '')
         
+        split_dict = {
+            "start_bit": hexbytes[:4].upper(),
+            "packet_length": hexbytes[4:6].upper(),
+            "protocol_number": hexbytes[6:8].upper(),
+            "information_content": hexbytes[8:-8].upper(),
+            "error_check": hexbytes[-8:-4].upper(),
+            "stop_bit": hexbytes[-4:].upper()
+        }
+
+        return split_dict
+        
+    def calc_crc(self, data):
+        """Calculates the CRC 16 error check value for the given data. Uses CRC 16 x25
+
+        Args:
+            data: The data to calculate the CRC error check value for. hex string
+            EXAMPLE: '0D0101234567890123450001'
+        Returns:
+            The CRC error check value.
+            EXAMPLE: '8CDD'
+        """
+
+        return hex(libscrc.x25(bytes.fromhex(data)))[2:].zfill(4).upper()
         
 if __name__ == '__main__':
     
     
-    decoder = ConcoxDecoder()
+    decoder = KarimuDecoder()
 
-    crc = decoder.status_decoder(b'78 78 08 13 4B 04 03 00 01 00 11 06 1F 0D 0A')
+    # crc = decoder.status_decoder(b'78 78 08 13 4B 04 03 00 01 00 11 06 1F 0D 0A')
     # crc = decoder.decode_alarm_language('0002')
     # print(crc)
-    print(decoder.decode_packet_format(b'78780B800900e94457585823000198B30D0A'))
-    # print(decoder.encode_command_to_device("DWXX#"))
+    # print(decoder.login_decoder(b'eeee0a013132333435363738414243444546313233343536373839300ad1e7aaaa'))
+    print(decoder.calc_crc("0A013132333435363738414243444546313233343536373839300A"))
     
     # s = "787805130011F9700D0A"
     # print(" ".join([s[i:i+2] for i in range(0, len(s), 2)]))
