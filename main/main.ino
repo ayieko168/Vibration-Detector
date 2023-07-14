@@ -1,8 +1,8 @@
 #include <SoftwareSerial.h>
 #include "CodecKT1.h"
 
-const char* imei = "1234567812345678";
-const char* deviceId = "ABCDEF1234567890";
+const char* deviceId = "gBhmSbJlmIHuRbvgxcRajJTrQSGoZoZqJZDEPNDJ";  //Must be 40 Bytes
+char* imei = "0356307042441013";                                    //Must be 8 bytes  sprintf(imei, "%016s", imei);
 
 float longitude = -1.349856;
 float latitude = 32.455678;
@@ -13,7 +13,7 @@ uint8_t state = 1;
 uint16_t battVoltage = 3600;
 
 // Assuming a buffer of size 100 to hold the packets
-uint8_t loginPacket[56];
+uint8_t loginPacket[64];
 uint8_t deviceDataPacket[100];
 
 // TCP Variables

@@ -44,9 +44,9 @@ void CodecKT1::createLoginPacket(uint8_t* packet, const char* imei, const char* 
   packet += deviceIdLength;
 
   // Error Check
-  uint16_t crc = calculateCRC16(packet - packetLength, packetLength);
-  *packet++ = crc >> 8;
-  *packet++ = crc & 0xFF;
+  uint16_t crc = calculateCRC16(packet - packetLength + 2, packetLength - 2);
+  memcpy(packet, &crc, sizeof(crc));
+  packet += sizeof(crc);
 
   // Stop bit
   *packet++ = 0xaa;
