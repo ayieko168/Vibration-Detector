@@ -1,7 +1,7 @@
 #include <SoftwareSerial.h>
 #include "CodecKT1.h"
 
-const char* deviceId = "gBhmSbJlmIHuRbvgxcRajJTrQSGoZoZqJZDEPNDJ";  //Must be 40 Bytes
+const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZT";  //Must be 40 Bytes
 char* imei = "0356307042441013";                                    //Must be 8 bytes  sprintf(imei, "%016s", imei);
 
 float longitude = -1.349856;
@@ -28,29 +28,14 @@ void setup() {
   Serial.begin(9600);
   codec.begin(deviceId, imei);
 
-  // codec.createLoginPacket(loginPacket, imei, deviceId);
+  codec.createLoginPacket(loginPacket, imei, deviceId);
+  size_t bufferSize = sizeof(loginPacket) / sizeof(loginPacket[0]);
   
-  // Serial.println("Login Packet:");
-  // for (size_t i = 0; i < sizeof(loginPacket); ++i) {
-  //   // Serial.print("0x");
-  //   Serial.print(loginPacket[i], HEX);
-  //   Serial.print(" ");
-  // }
-  // Serial.println();
+  Serial.println("Login Packet:");
+  String loginPacketString = bufferToString(loginPacket, bufferSize);
+  Serial.println(loginPacketString);
 
-  // Data to calculate CRC for
-  uint8_t data[] = {0x39, 0x01, 0x30, 0x33, 0x35, 0x36, 0x33, 0x30, 0x37, 0x30, 0x34, 0x32, 0x34, 0x34, 0x31, 0x30, 0x31, 0x33, 0x67, 0x42, 0x68, 0x6D, 0x53, 0x62, 0x4A, 0x6C, 0x6D, 0x49, 0x48, 0x75, 0x52, 0x62, 0x76, 0x67, 0x78, 0x63, 0x52, 0x61, 0x6A, 0x4A, 0x54, 0x72, 0x51, 0x53, 0x47, 0x6F, 0x5A, 0x6F, 0x5A, 0x71, 0x4A, 0x5A, 0x44, 0x45, 0x50, 0x4E, 0x44, 0x4A};
-  size_t dataSize = sizeof(data) / sizeof(data[0]);
-
-  // Calculate the CRC32 checksum
-  uint16_t crc = codec.calculateCRC16(data, dataSize);
-
-  // Print the CRC value
-  Serial.print("CRC: 0x");
-  if (crc < 0x1000) Serial.print("0");
-  if (crc < 0x100) Serial.print("0");
-  Serial.println(crc, HEX);
-
+  checkLoginDataLenths();
 
 }
 
@@ -58,3 +43,34 @@ void loop() {
   // put your main code here, to run repeatedly:
 
 }
+
+String bufferToString(uint8_t* buffer, size_t bufferSize) {
+  String result;
+  for (size_t i = 0; i < bufferSize; i++) {
+    if (buffer[i] < 0x10) {
+      result += "0";  // Zero-padding if necessary
+    }
+    result += String(buffer[i], HEX);  // Append the hexadecimal value
+  }
+  return result;
+}
+
+void checkLoginDataLenths(){
+  /*
+  A utility that can be used to check the length of the device_id and device_imei values.
+  This function should be run every time a the begining of the loop.
+  */
+
+  size_t deviceIdLength = strlen(deviceId);
+  size_t imeiLength = strlen(imei);
+
+  if(deviceIdLength < 40 || imeiLength < 16){
+    Serial.print(F("[CRITICAL] One of the Login Data parts has a length less than needed; "));
+    Serial.print("Devive ID len: ");
+    Serial.print(deviceIdLength);
+    Serial.print(" IMEI len: ");
+    Serial.println(imeiLength);
+  }
+  
+}
+
