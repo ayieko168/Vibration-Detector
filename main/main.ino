@@ -1,7 +1,7 @@
 #include <SoftwareSerial.h>
 #include "CodecKT1.h"
 
-const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZT";  //Must be 40 Bytes
+const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZh";  //Must be 40 Bytes
 char* imei = "0356307042441013";                                    //Must be 8 bytes  sprintf(imei, "%016s", imei);
 
 float longitude = -1.349856;
@@ -12,9 +12,9 @@ uint16_t acceleration = 512;
 uint8_t state = 1;
 uint16_t battVoltage = 3600;
 
-// Assuming a buffer of size 100 to hold the packets
+// Set asside space for the data packets
 uint8_t loginPacket[64];
-uint8_t deviceDataPacket[100];
+uint8_t deviceDataPacket[30];
 
 // TCP Variables
 String apn = "Safaricom";
@@ -26,14 +26,24 @@ CodecKT1 codec;
 
 void setup() {
   Serial.begin(9600);
-  codec.begin(deviceId, imei);
 
+  // Test Login Packet
   codec.createLoginPacket(loginPacket, imei, deviceId);
-  size_t bufferSize = sizeof(loginPacket) / sizeof(loginPacket[0]);
+  size_t loginPacketSize = sizeof(loginPacket) / sizeof(loginPacket[0]);
   
   Serial.println("Login Packet:");
-  String loginPacketString = bufferToString(loginPacket, bufferSize);
+  String loginPacketString = bufferToString(loginPacket, loginPacketSize);
   Serial.println(loginPacketString);
+
+
+  // Test Device data packet
+  codec.createDeviceDataPacket(deviceDataPacket, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
+  size_t deviceDataPacketSize = sizeof(deviceDataPacket) / sizeof(deviceDataPacket[0]);
+  
+  Serial.println("Device Data Packet:");
+  String deviceDataPacketString = bufferToString(deviceDataPacket, deviceDataPacketSize);
+  deviceDataPacketString.trim();
+  Serial.println(deviceDataPacketString);
 
   checkLoginDataLenths();
 

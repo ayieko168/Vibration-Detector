@@ -1,9 +1,5 @@
 #include "CodecKT1.h"
 
-void CodecKT1::begin(const char* deviceId, const char* imei) {
-
-}
-
 uint16_t CodecKT1::calculateCRC16(uint8_t* data, size_t dataSize) {
   const uint16_t polynomial = 0x8408;
   uint16_t crc = 0xFFFF;
@@ -66,28 +62,40 @@ void CodecKT1::createDeviceDataPacket(uint8_t* packet, float longitude, float la
   *packet++ = 0x02;
 
   // Packet data
-  memcpy(packet, &longitude, sizeof(longitude));
-  packet += sizeof(longitude);
-  memcpy(packet, &latitude, sizeof(latitude));
-  packet += sizeof(latitude);
-  memcpy(packet, &timestamp, sizeof(timestamp));
-  packet += sizeof(timestamp);
-  *packet++ = satellites;
-  memcpy(packet, &acceleration, sizeof(acceleration));
-  packet += sizeof(acceleration);
-  *packet++ = state;
-  memcpy(packet, &battVoltage, sizeof(battVoltage));
-  packet += sizeof(battVoltage);
+  int32_t longitudeFixed = static_cast<int32_t>(longitude * 1000000);  // Convert float to fixed-point with 6 decimal places
+  memcpy(packet, &longitudeFixed, 4);  // 4 bytes for longitude
+  packet += 4;
+
+  int32_t latitudeFixed = static_cast<int32_t>(latitude * 1000000);  // Convert float to fixed-point with 6 decimal places
+  memcpy(packet, &latitudeFixed, 4);  // 4 bytes for latitude
+  packet += 4;
+
+  memcpy(packet, &timestamp, 8);  // 8 bytes for timestamp
+  packet += 8;
+
+  *packet++ = satellites;  // 1 byte for satellites
+
+  int16_t accelerationFixed = static_cast<int16_t>(acceleration * 100);  // Convert float to fixed-point with 2 decimal places
+  memcpy(packet, &accelerationFixed, 2);  // 2 bytes for acceleration
+  packet += 2;
+
+  *packet++ = state;  // 1 byte for state
+
+  uint16_t battVoltageFixed = static_cast<uint16_t>(battVoltage * 100);  // Convert float to fixed-point with 2 decimal places
+  memcpy(packet, &battVoltageFixed, 2);  // 2 bytes for battVoltage
+  packet += 2;
 
   // Error Check
-  uint16_t crc = calculateCRC16(packet - 0x17, 0x17);
-  *packet++ = crc >> 8;
+  uint16_t crc = calculateCRC16(packet - packetLength + 1, packetLength - 1);
   *packet++ = crc & 0xFF;
+  *packet++ = (crc >> 8) & 0xFF;
 
   // Stop bit
   *packet++ = 0xaa;
   *packet++ = 0xaa;
 }
+
+
 
 
 
