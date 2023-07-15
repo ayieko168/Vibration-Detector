@@ -22,7 +22,7 @@ void setup() {
   Serial.begin(9600);
 
   // Hexadecimal string to calculate CRC for
-  String hexString = "0D0101234567890123450001";
+  String hexString = "32323431303137373738373938303434506564524D444C6E79686D31374743557A62676E46456A4F474F564B4A33636D48354E4977513667";
 
   // Convert the hexadecimal string to a byte array
   size_t dataSize = hexString.length() / 2;
