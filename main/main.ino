@@ -4,13 +4,21 @@
 const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZh";  //Must be 40 Bytes
 char* imei = "0356307042441013";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
 
-float longitude = -1.349856;
-float latitude = 32.455678;
-uint64_t timestamp = 1689359519;
-uint8_t satellites = 10;
-uint16_t acceleration = 512;
-uint8_t state = 1;
-uint16_t battVoltage = 3600;
+// float longitude = -1.349856;
+// float latitude = 32.455678;
+// uint64_t timestamp = 1689359519;
+// uint8_t satellites = 10;
+// uint16_t acceleration = 512;
+// uint8_t state = 1;
+// uint16_t battVoltage = 3600;
+
+float longitude = -1.34987856;
+float latitude = 45.78;
+uint64_t timestamp = 1689359675;
+uint8_t satellites = 1;
+uint16_t acceleration = 3781;
+uint8_t state = 76;
+uint16_t battVoltage = 12;
 
 // Set asside space for the data packets
 uint8_t loginPacket[64];

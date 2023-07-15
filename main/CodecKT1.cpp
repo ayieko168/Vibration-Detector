@@ -56,8 +56,8 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
   // Start bit
   packet_hex_string += "EEEE";
 
-  // Packet Length placeholder
-  packet_hex_string += "ZZ";
+  // Packet Length
+  packet_hex_string += "16";
 
   // Protocol Number
   packet_hex_string += "02";
@@ -68,7 +68,7 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
   memcpy(&longitudeData, &longitude, sizeof(longitudeData));
   char hexLongitude[sizeof(longitudeData) * 2 + 1];
   for (int i = sizeof(longitudeData) * 2 - 1; i >= 0; i--)
-  hexLongitude[sizeof(longitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(longitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
+    hexLongitude[sizeof(longitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(longitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
   hexLongitude[sizeof(longitudeData) * 2] = '\0';
   packet_hex_string += hexLongitude;
   Serial.println(hexLongitude);
@@ -78,26 +78,27 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
   memcpy(&latitudeData, &latitude, sizeof(latitudeData));
   char hexLatitude[sizeof(latitudeData) * 2 + 1];
   for (int i = sizeof(latitudeData) * 2 - 1; i >= 0; i--)
-  hexLatitude[sizeof(latitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(latitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
+    hexLatitude[sizeof(latitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(latitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
   hexLatitude[sizeof(latitudeData) * 2] = '\0';
   packet_hex_string += hexLatitude;
   Serial.println(hexLatitude);
 
   // Timestamp
   char hexTimestamp[17];
-  for (int i = 0; i < 16; i++) hexTimestamp[i] = "0123456789ABCDEF"[(timestamp >> ((15 - i) * 4)) & 0xF];
+  for (int i = 0; i < 16; i++)
+    hexTimestamp[i] = "0123456789ABCDEF"[(timestamp >> ((15 - i) * 4)) & 0xF];
   hexTimestamp[16] = '\0';
   packet_hex_string += hexTimestamp;
   Serial.println(hexTimestamp);
 
   // Satellites
-  char hexSatellites[5];
+  char hexSatellites[3];
   snprintf(hexSatellites, sizeof(hexSatellites), "%02X", satellites);
   packet_hex_string += hexSatellites;
   Serial.println(hexSatellites);
 
   // State
-  char hexState[5];
+  char hexState[3];
   snprintf(hexState, sizeof(hexState), "%02X", state);
   packet_hex_string += hexState;
   Serial.println(hexState);
@@ -114,30 +115,27 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
   packet_hex_string += hexAcceleration;
   Serial.println(hexAcceleration);
 
-  // Recalculate the Packet Length
+  // Calculate Checksum
   String info_packet = packet_hex_string.substring(8);
-  uint8_t packetLength = info_packet.length() / 2 + 13;
-  char packetLengthHex[3];
-  snprintf(packetLengthHex, sizeof(packetLengthHex), "%02X", packetLength);
-  packet_hex_string.replace("ZZ", packetLengthHex);
-
-  // Zero padding if needed
-  while (info_packet.length() < 96) {
-    info_packet = "00" + info_packet;
+  uint8_t checksumData[info_packet.length() / 2];
+  for (size_t i = 0; i < info_packet.length(); i += 2) {
+    checksumData[i / 2] = (uint8_t)strtol(info_packet.substring(i, i + 2).c_str(), NULL, 16);
   }
-
-  // Error Check
-  uint16_t crc = calculateCRC16((uint8_t*)info_packet.c_str(), info_packet.length() / 2);
+  uint16_t crc = calculateCRC16(checksumData, sizeof(checksumData));
   char crcHex[5];
   snprintf(crcHex, sizeof(crcHex), "%04X", crc);
   packet_hex_string += crcHex;
+  // Serial.println(checksumData);
+  // Serial.println(crcHex);
 
-  
+
   // Stop bit
   packet_hex_string += "AAAA";
 
   return packet_hex_string;
 }
+
+
 
 
 
