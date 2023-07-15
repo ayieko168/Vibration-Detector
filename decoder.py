@@ -1,6 +1,7 @@
 import json
 import libscrc
 import binascii
+import struct
 
 class Decoder:
    
@@ -71,40 +72,41 @@ class Decoder:
       # print(device_imei, device_id)
       return device_imei, device_id
    
-   def device_data_decoder(self, packet: str) -> None:
+   def device_data_decoder(self, packet: str, print_bits: bool = False) -> dict:
       ## Get the structure of the data packet
       packet_structure = self.decode_packet_structure(packet)
       
       ## Decode the data according to the protocol
       information_bits = packet_structure['information_bits']
-      # device_information_packets = {
-      #    'longitude' : information_bits[:8],
-      #    'latitude' : information_bits[8:16],
-      #    'timestamp' : information_bits[16:32],
-      #    'satellites' : information_bits[32:34],
-      #    'state' : information_bits[34:36],
-      #    'batt_voltage' : information_bits[36:40],
-      #    'acceleration' : information_bits[40:]
-      # }
-      
       device_information_packets = {
-         "longitude": binascii.hexlify(binascii.unhexlify(information_bits[:8])[::-1]).decode(),
-         "latitude": binascii.hexlify(binascii.unhexlify(information_bits[8:16])[::-1]).decode(),
-         "timestamp": binascii.hexlify(binascii.unhexlify(information_bits[16:32])[::-1]).decode(),
-         "satellites": information_bits[32:34],
-         "state": information_bits[34:36],
-         "batt_voltage": binascii.hexlify(binascii.unhexlify(information_bits[36:40])[::-1]).decode(),
-         "acceleration": binascii.hexlify(binascii.unhexlify(information_bits[40:])[::-1]).decode()
+         'longitude' : information_bits[:8],
+         'latitude' : information_bits[8:16],
+         'timestamp' : information_bits[16:32],
+         'satellites' : information_bits[32:34],
+         'state' : information_bits[34:36],
+         'batt_voltage' : information_bits[36:40],
+         'acceleration' : information_bits[40:]
       }
       
+      if print_bits:
+         print(json.dumps(device_information_packets, indent=2))
       
-      print(json.dumps(device_information_packets, indent=2))
+      ## Decode to decimal
+      device_information = {}
+      for k, v in device_information_packets.items():
+         if k == 'longitude' or k == 'latitude':
+            device_information[k] = struct.unpack('!f', bytes.fromhex(v))[0]
+         elif k == 'timestamp':
+            device_information[k] = struct.unpack('!Q', bytes.fromhex(v))[0]
+         elif k == 'satellites' or k == 'state':
+            device_information[k] = struct.unpack('!B', bytes.fromhex(v))[0]
+         elif k == 'batt_voltage' or k == 'acceleration':
+            device_information[k] = struct.unpack('!H', bytes.fromhex(v))[0]
+         else:
+            device_information[k] = int(v)
       
-      ## Convert the packets to actual values
-      # device_information = {}
-      # for k, v in device_information_packets.items():
-      #    device_information[k] = 
-   
+      return device_information
+
    def calc_crc(self, data: str, padded: bool = False) -> str:
       """Calculates the CRC 16 error check value for the given data. Uses CRC 16 x25
 
@@ -125,18 +127,58 @@ class Decoder:
 
       return hex(libscrc.x25(bytes.fromhex(data)))[2:].zfill(4).upper()
 
+   def createDeviceDataPacket(self, longitude: float, latitude: float, timestamp: int, satellites: int, acceleration: int, state: int, battVoltage: int):
+      
+      packet_hex_string = b""
+      
+      ## Start bit
+      packet_hex_string += b"eeee"
+      
+      ## Packet Lenght
+      packet_hex_string += b"ZZ"
+      
+      ## Protocol Number
+      packet_hex_string += b"02"
+      
+      ## Information bit
+      # Longitude
+      packet_hex_string += struct.pack('!f', longitude).hex().upper().encode('utf-8')
+      # Latitude
+      packet_hex_string += struct.pack('!f', latitude).hex().upper().encode('utf-8')
+      # Timestamp
+      packet_hex_string += struct.pack('!Q', timestamp).hex().upper().encode('utf-8')
+      # Satelittes
+      packet_hex_string += struct.pack('!B', satellites).hex().upper().encode('utf-8')
+      # State
+      packet_hex_string += struct.pack('!B', state).hex().upper().encode('utf-8')
+      # Battery Voltage
+      packet_hex_string += struct.pack('!H', battVoltage).hex().upper().encode('utf-8')
+      # Acceleration
+      packet_hex_string += struct.pack('!H', acceleration).hex().upper().encode('utf-8')
+      
+      ## Recalculate the Packet Lenght
+      info_packet = packet_hex_string[8:].decode('utf-8')
+      packet_hex_string = packet_hex_string.replace(b'ZZ', struct.pack('!B', int(len(info_packet)/2)).hex().upper().encode('utf-8'))
+      ## Error Check
+      packet_hex_string += self.calc_crc(info_packet).encode('utf-8')
+      
+      ## Stop bit
+      packet_hex_string += b"aaaa"
 
 
+      return packet_hex_string.upper()
 
-
-
+   
 
 
 if __name__ == '__main__':
    
    decoder = Decoder()
    
-   packet = "eeee17022067ebfffe3bef01941eda60000000000a00c801407e2a38aaaa"
+   packet = "EEEE400137323336353538313437313338343800667A7863305747306C56416A3641546A6A58324139564E4673664A3471484C6F474275664252424801E6AAAA"
+      
+   # print(decoder.createDeviceDataPacket(-1.349856, 32.455678, 1689359519, 10, 512, 1, 3600))
+   # print(decoder.createDeviceDataPacket(-1.34987856, 45.78, 1689359675, 1, 3781, 76, 12))
    
    print(
       json.dumps(
@@ -147,19 +189,35 @@ if __name__ == '__main__':
       )
    )
    
-   print(
-      decoder.device_data_decoder(packet)
-   )
+   # print(
+   #    json.dumps(
+   #       decoder.device_data_decoder(packet),
+   #       indent=2
+   #    )
+   # )
    
    # print(
    #    decoder.calc_crc(
-   #       '39 01 30 33 35 36 33 30 37 30 34 32 34 34 31 30 31 33 67 42 68 6D 53 62 4A 6C 6D 49 48 75 52 62 76 67 78 63 52 61 6A 4A 54 72 51 53 47 6F 5A 6F 5A 71 4A 5A 44 45 50 4E 44 4A'
+   #       '32323431303137373738373938303434506564524D444C6E79686D31374743557A62676E46456A4F474F564B4A33636D48354E4977513667'
    #    )
    # )
+   
    
    print(
       decoder.calc_crc(
          decoder.decode_packet_structure(packet).get('information_bits')
+      )
+   )
+   
+   # print(
+   #    decoder.login_packet_decoder(
+   #       'eeee3901303335363330373034323434313031336742686d53624a6c6d49487552627667786652616a4a54725153476f5a6f5a714a5a4445504e5a68b89eaaaa'
+   #    )
+   # )
+   
+   print(
+      decoder.login_packet_decoder(
+         packet
       )
    )
       
