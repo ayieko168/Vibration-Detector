@@ -50,49 +50,93 @@ void CodecKT1::createLoginPacket(uint8_t* packet, const char* imei, const char* 
   *packet++ = 0xaa;
 }
 
-void CodecKT1::createDeviceDataPacket(uint8_t* packet, float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage) {
+String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage) {
+  String packet_hex_string = "";
+
   // Start bit
-  *packet++ = 0xee;
-  *packet++ = 0xee;
+  packet_hex_string += "EEEE";
 
-  // Packet length
-  *packet++ = 0x17;
+  // Packet Length placeholder
+  packet_hex_string += "ZZ";
 
-  // Protocol number
-  *packet++ = 0x02;
+  // Protocol Number
+  packet_hex_string += "02";
 
-  // Packet data
-  int32_t longitudeFixed = static_cast<int32_t>(longitude * 1000000);  // Convert float to fixed-point with 6 decimal places
-  memcpy(packet, &longitudeFixed, 4);  // 4 bytes for longitude
-  packet += 4;
+  // Information bits
+  // Longitude
+  uint32_t longitudeData;
+  memcpy(&longitudeData, &longitude, sizeof(longitudeData));
+  char hexLongitude[sizeof(longitudeData) * 2 + 1];
+  for (int i = sizeof(longitudeData) * 2 - 1; i >= 0; i--)
+  hexLongitude[sizeof(longitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(longitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
+  hexLongitude[sizeof(longitudeData) * 2] = '\0';
+  packet_hex_string += hexLongitude;
+  Serial.println(hexLongitude);
 
-  int32_t latitudeFixed = static_cast<int32_t>(latitude * 1000000);  // Convert float to fixed-point with 6 decimal places
-  memcpy(packet, &latitudeFixed, 4);  // 4 bytes for latitude
-  packet += 4;
+  // Latitude
+  uint32_t latitudeData;
+  memcpy(&latitudeData, &latitude, sizeof(latitudeData));
+  char hexLatitude[sizeof(latitudeData) * 2 + 1];
+  for (int i = sizeof(latitudeData) * 2 - 1; i >= 0; i--)
+  hexLatitude[sizeof(latitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(latitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
+  hexLatitude[sizeof(latitudeData) * 2] = '\0';
+  packet_hex_string += hexLatitude;
+  Serial.println(hexLatitude);
 
-  memcpy(packet, &timestamp, 8);  // 8 bytes for timestamp
-  packet += 8;
+  // Timestamp
+  char hexTimestamp[17];
+  for (int i = 0; i < 16; i++) hexTimestamp[i] = "0123456789ABCDEF"[(timestamp >> ((15 - i) * 4)) & 0xF];
+  hexTimestamp[16] = '\0';
+  packet_hex_string += hexTimestamp;
+  Serial.println(hexTimestamp);
 
-  *packet++ = satellites;  // 1 byte for satellites
+  // Satellites
+  char hexSatellites[5];
+  snprintf(hexSatellites, sizeof(hexSatellites), "%02X", satellites);
+  packet_hex_string += hexSatellites;
+  Serial.println(hexSatellites);
 
-  int16_t accelerationFixed = static_cast<int16_t>(acceleration * 100);  // Convert float to fixed-point with 2 decimal places
-  memcpy(packet, &accelerationFixed, 2);  // 2 bytes for acceleration
-  packet += 2;
+  // State
+  char hexState[5];
+  snprintf(hexState, sizeof(hexState), "%02X", state);
+  packet_hex_string += hexState;
+  Serial.println(hexState);
 
-  *packet++ = state;  // 1 byte for state
+  // Battery Voltage
+  char hexBattVoltage[5];
+  snprintf(hexBattVoltage, sizeof(hexBattVoltage), "%04X", battVoltage);
+  packet_hex_string += hexBattVoltage;
+  Serial.println(hexBattVoltage);
 
-  uint16_t battVoltageFixed = static_cast<uint16_t>(battVoltage * 100);  // Convert float to fixed-point with 2 decimal places
-  memcpy(packet, &battVoltageFixed, 2);  // 2 bytes for battVoltage
-  packet += 2;
+  // Acceleration
+  char hexAcceleration[5];
+  snprintf(hexAcceleration, sizeof(hexAcceleration), "%04X", acceleration);
+  packet_hex_string += hexAcceleration;
+  Serial.println(hexAcceleration);
+
+  // Recalculate the Packet Length
+  String info_packet = packet_hex_string.substring(8);
+  uint8_t packetLength = info_packet.length() / 2 + 13;
+  char packetLengthHex[3];
+  snprintf(packetLengthHex, sizeof(packetLengthHex), "%02X", packetLength);
+  packet_hex_string.replace("ZZ", packetLengthHex);
+
+  // Zero padding if needed
+  while (info_packet.length() < 96) {
+    info_packet = "00" + info_packet;
+  }
 
   // Error Check
-  uint16_t crc = calculateCRC16(packet - packetLength + 1, packetLength - 1);
-  *packet++ = crc & 0xFF;
-  *packet++ = (crc >> 8) & 0xFF;
+  uint16_t crc = calculateCRC16((uint8_t*)info_packet.c_str(), info_packet.length() / 2);
+  char crcHex[5];
+  snprintf(crcHex, sizeof(crcHex), "%04X", crc);
+  packet_hex_string += crcHex;
 
+  
   // Stop bit
-  *packet++ = 0xaa;
-  *packet++ = 0xaa;
+  packet_hex_string += "AAAA";
+
+  return packet_hex_string;
 }
 
 

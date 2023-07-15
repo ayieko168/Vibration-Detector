@@ -12,7 +12,8 @@ class CodecKT1 {
 
     void begin(const char* deviceId, const char* imei);
     void createLoginPacket(uint8_t* packet, const char* imei, const char* deviceId);
-    void createDeviceDataPacket(uint8_t* packet, float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage);
+    // void createDeviceDataPacket(uint8_t* packet, float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage);
+    String createDeviceDataPacket(float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage);
     uint16_t calculateCRC16(uint8_t* data, size_t dataSize);
 };
 

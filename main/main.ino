@@ -2,11 +2,11 @@
 #include "CodecKT1.h"
 
 const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZh";  //Must be 40 Bytes
-char* imei = "0356307042441013";                                    //Must be 8 bytes  sprintf(imei, "%016s", imei);
+char* imei = "0356307042441013";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
 
 float longitude = -1.349856;
 float latitude = 32.455678;
-uint64_t timestamp = 1624907412;
+uint64_t timestamp = 1689359519;
 uint8_t satellites = 10;
 uint16_t acceleration = 512;
 uint8_t state = 1;
@@ -37,15 +37,27 @@ void setup() {
 
 
   // Test Device data packet
-  codec.createDeviceDataPacket(deviceDataPacket, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
-  size_t deviceDataPacketSize = sizeof(deviceDataPacket) / sizeof(deviceDataPacket[0]);
-  
+  String deviceDataPacketString = codec.createDeviceDataPacket(longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
   Serial.println("Device Data Packet:");
-  String deviceDataPacketString = bufferToString(deviceDataPacket, deviceDataPacketSize);
-  deviceDataPacketString.trim();
   Serial.println(deviceDataPacketString);
 
-  checkLoginDataLenths();
+  // Serial.print("0x");
+  // Serial.println(*(unsigned long*)&longitude, HEX);
+
+  // checkLoginDataLenths();
+
+  /*   Test CRC function   */
+  // String hexString = "E0981400FE3BEF01941EDA60000000000A01407E00C8";
+  // size_t dataSize = hexString.length() / 2;
+  // uint8_t data[dataSize];
+  // for (size_t i = 0; i < dataSize; i++) {
+  //   sscanf(hexString.substring(i * 2, i * 2 + 2).c_str(), "%02X", &data[i]);
+  // }
+  // uint16_t crc = codec.calculateCRC16(data, dataSize);
+  // Serial.print("CRC: 0x");
+  // if (crc < 0x1000) Serial.print("0");
+  // if (crc < 0x100) Serial.print("0");
+  // Serial.println(crc, HEX);
 
 }
 
