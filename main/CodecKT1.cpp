@@ -19,36 +19,37 @@ uint16_t CodecKT1::calculateCRC16(uint8_t* data, size_t dataSize) {
   return crc;
 }
 
-void CodecKT1::createLoginPacket(uint8_t* packet, const char* imei, const char* deviceId) {
+String CodecKT1::createLoginPacket(const char* imei, const char* deviceId) {
   size_t imeiLength = strlen(imei);
   size_t deviceIdLength = strlen(deviceId);
   size_t packetLength = imeiLength + deviceIdLength + 1;  // 1 byte for the protocol number
 
+  String packetString = "";
+
   // Start bit
-  *packet++ = 0xee;
-  *packet++ = 0xee;
+  packetString += "EEEE";
 
   // Packet length
-  *packet++ = static_cast<uint8_t>(packetLength);
+  packetString += String(static_cast<uint8_t>(packetLength), HEX);
 
   // Protocol number
-  *packet++ = 0x01;
+  packetString += "01";
 
   // Packet data (IMEI and Device ID)
-  memcpy(packet, imei, imeiLength);
-  packet += imeiLength;
-  memcpy(packet, deviceId, deviceIdLength);
-  packet += deviceIdLength;
+  packetString += imei;
+  packetString += deviceId;
 
   // Error Check
-  uint16_t crc = calculateCRC16(packet - packetLength + 1, packetLength - 1);
-  *packet++ = (crc >> 8) & 0xFF;
-  *packet++ = crc & 0xFF;
+  uint16_t crc = calculateCRC16((uint8_t*)packetString.c_str() + 4, packetLength - 1);
+  packetString += String((crc >> 8) & 0xFF, HEX);
+  packetString += String(crc & 0xFF, HEX);
 
   // Stop bit
-  *packet++ = 0xaa;
-  *packet++ = 0xaa;
+  packetString += "AAAA";
+
+  return packetString;
 }
+
 
 String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage) {
   String packet_hex_string = "";
@@ -71,7 +72,7 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
     hexLongitude[sizeof(longitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(longitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
   hexLongitude[sizeof(longitudeData) * 2] = '\0';
   packet_hex_string += hexLongitude;
-  Serial.println(hexLongitude);
+  // Serial.println(hexLongitude);
 
   // Latitude
   uint32_t latitudeData;
@@ -81,7 +82,7 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
     hexLatitude[sizeof(latitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(latitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
   hexLatitude[sizeof(latitudeData) * 2] = '\0';
   packet_hex_string += hexLatitude;
-  Serial.println(hexLatitude);
+  // Serial.println(hexLatitude);
 
   // Timestamp
   char hexTimestamp[17];
@@ -89,31 +90,31 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
     hexTimestamp[i] = "0123456789ABCDEF"[(timestamp >> ((15 - i) * 4)) & 0xF];
   hexTimestamp[16] = '\0';
   packet_hex_string += hexTimestamp;
-  Serial.println(hexTimestamp);
+  // Serial.println(hexTimestamp);
 
   // Satellites
   char hexSatellites[3];
   snprintf(hexSatellites, sizeof(hexSatellites), "%02X", satellites);
   packet_hex_string += hexSatellites;
-  Serial.println(hexSatellites);
+  // Serial.println(hexSatellites);
 
   // State
   char hexState[3];
   snprintf(hexState, sizeof(hexState), "%02X", state);
   packet_hex_string += hexState;
-  Serial.println(hexState);
+  // Serial.println(hexState);
 
   // Battery Voltage
   char hexBattVoltage[5];
   snprintf(hexBattVoltage, sizeof(hexBattVoltage), "%04X", battVoltage);
   packet_hex_string += hexBattVoltage;
-  Serial.println(hexBattVoltage);
+  // Serial.println(hexBattVoltage);
 
   // Acceleration
   char hexAcceleration[5];
   snprintf(hexAcceleration, sizeof(hexAcceleration), "%04X", acceleration);
   packet_hex_string += hexAcceleration;
-  Serial.println(hexAcceleration);
+  // Serial.println(hexAcceleration);
 
   // Calculate Checksum
   String info_packet = packet_hex_string.substring(8);
