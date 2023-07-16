@@ -175,7 +175,7 @@ if __name__ == '__main__':
    
    decoder = Decoder()
    
-   packet = "EEEE400137323336353538313437313338343800667A7863305747306C56416A3641546A6A58324139564E4673664A3471484C6F474275664252424801E6AAAA"
+   packet = "794638036CF1D74BCF6ED96F5A4FCA3F771DAEAFC4F8FFA6C3198EF6F9DDAAA850A646583D030C00E515D5BEA2C5BBA900C6B71EFFCC335E4B2AD09302306497"
       
    # print(decoder.createDeviceDataPacket(-1.349856, 32.455678, 1689359519, 10, 512, 1, 3600))
    # print(decoder.createDeviceDataPacket(-1.34987856, 45.78, 1689359675, 1, 3781, 76, 12))
@@ -197,8 +197,14 @@ if __name__ == '__main__':
    # )
    
    # print(
+   #    decoder.login_packet_decoder(
+   #       packet
+   #    )
+   # )
+   
+   # print(
    #    decoder.calc_crc(
-   #       '32323431303137373738373938303434506564524D444C6E79686D31374743557A62676E46456A4F474F564B4A33636D48354E4977513667'
+   #       '6C F1 D7 4B CF 6E D9 6F 5A 4F CA 3F 77 1D AE AF C4 F8 FF A6 C3 19 8E F6 F9 DD AA A8 50 A6 46 58 3D 03 0C 00 E5 15 D5 BE A2 C5 BB A9 00 C6 B7 1E FF CC 33 5E 4B 2A D0 93'
    #    )
    # )
    
@@ -215,11 +221,7 @@ if __name__ == '__main__':
    #    )
    # )
    
-   print(
-      decoder.login_packet_decoder(
-         packet
-      )
-   )
+   
       
    # import random, string
    # values = ["".join(random.choices(string.hexdigits, k=random.randrange(30, 70, 2))).upper() for _ in range(10)]

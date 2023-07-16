@@ -20,9 +20,11 @@ uint16_t CodecKT1::calculateCRC16(uint8_t* data, size_t dataSize) {
 }
 
 String CodecKT1::createLoginPacket(const char* imei, const char* deviceId) {
-  size_t imeiLength = strlen(imei);
-  size_t deviceIdLength = strlen(deviceId);
-  size_t packetLength = imeiLength + deviceIdLength + 1;  // 1 byte for the protocol number
+  const int imeiLength = strlen(imei);
+  const int deviceIdLength = strlen(deviceId);
+  const size_t packetLength = imeiLength + deviceIdLength + 1;  // 1 byte for the protocol number
+  int index1 = 0;
+  int index2 = 0;
 
   String packetString = "";
 
@@ -30,26 +32,53 @@ String CodecKT1::createLoginPacket(const char* imei, const char* deviceId) {
   packetString += "EEEE";
 
   // Packet length
-  packetString += String(static_cast<uint8_t>(packetLength), HEX);
+  packetString += "40";
 
   // Protocol number
   packetString += "01";
 
-  // Packet data (IMEI and Device ID)
-  packetString += imei;
-  packetString += deviceId;
+  // Packet data (IMEI)
+  char hexImei[33];
+  for (int i = 0; i < 32 - 2 * imeiLength; i++) { hexImei[index1++] = '0'; }
+  for (int i = 0; i < imeiLength; i++) {
+    byte highNibble = (imei[i] >> 4) & 0x0F;
+    byte lowNibble = imei[i] & 0x0F;
+    hexImei[index1++] = (highNibble < 10) ? (highNibble + '0') : (highNibble - 10 + 'A');
+    hexImei[index1++] = (lowNibble < 10) ? (lowNibble + '0') : (lowNibble - 10 + 'A');
+  }
+  hexImei[index1] = '\0';
+  packetString += hexImei;
+  // Serial.println(hexImei);
 
-  // Error Check
-  uint16_t crc = calculateCRC16((uint8_t*)packetString.c_str() + 4, packetLength - 1);
-  packetString += String((crc >> 8) & 0xFF, HEX);
-  packetString += String(crc & 0xFF, HEX);
+  // Packet data (Device ID)
+  char hexDeviceId[81];
+  for (int i = 0; i < 80 - 2 * deviceIdLength; i++) { hexDeviceId[index2++] = '0'; }
+  for (int i = 0; i < deviceIdLength; i++) {
+    byte highNibble = (deviceId[i] >> 4) & 0x0F;
+    byte lowNibble = deviceId[i] & 0x0F;
+    hexDeviceId[index2++] = (highNibble < 10) ? (highNibble + '0') : (highNibble - 10 + 'A');
+    hexDeviceId[index2++] = (lowNibble < 10) ? (lowNibble + '0') : (lowNibble - 10 + 'A');
+  }
+  hexDeviceId[index2] = '\0';
+  packetString += hexDeviceId;
+  // Serial.println(hexDeviceId);
+
+  // Calculate Checksum
+  String info_packet = packetString.substring(8);
+  uint8_t checksumData[info_packet.length() / 2];
+  for (size_t i = 0; i < info_packet.length(); i += 2) {
+    checksumData[i / 2] = (uint8_t)strtol(info_packet.substring(i, i + 2).c_str(), NULL, 16);
+  }
+  uint16_t crc = calculateCRC16(checksumData, sizeof(checksumData));
+  char crcHex[5];
+  snprintf(crcHex, sizeof(crcHex), "%04X", crc);
+  packetString += crcHex;
 
   // Stop bit
   packetString += "AAAA";
 
   return packetString;
 }
-
 
 String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage) {
   String packet_hex_string = "";
