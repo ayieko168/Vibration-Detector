@@ -56,21 +56,16 @@ String decodePacket(const String& packet) {
   // Extract the device ID
   String deviceID = packet.substring(40, 120);
 
-  // Convert server ID and device ID to uint8_t array for CRC calculation
-  uint8_t data[56];
-  for (int i = 0; i < 16; i++) {
-    String byteStr = packet.substring(8 + i * 4, 12 + i * 4);
-    uint16_t byteVal = strtol(byteStr.c_str(), NULL, 16);
-    data[i * 2] = byteVal >> 8;
-    data[i * 2 + 1] = byteVal & 0xFF;
-  }
-  for (int i = 0; i < 40; i++) {
-    String byteStr = packet.substring(40 + i * 2, 42 + i * 2);
-    data[32 + i] = strtol(byteStr.c_str(), NULL, 16);
+  // Convert the hexadecimal string to a byte array
+  String hexString = packet.substring(8, 120);
+  size_t dataSize = hexString.length() / 2;
+  uint8_t data[dataSize];
+  for (size_t i = 0; i < dataSize; i++) {
+    sscanf(hexString.substring(i * 2, i * 2 + 2).c_str(), "%02X", &data[i]);
   }
 
-  // Calculate the CRC
-  uint16_t calculatedCRC = calculateCRC16(data, 56);
+  // Calculate the CRC16 (X.25) checksum of the byte array
+  uint16_t calculatedCRC = calculateCRC16(data, dataSize);
 
   // Extract the received CRC from the packet
   String receivedCRCStr = packet.substring(120, 124);
