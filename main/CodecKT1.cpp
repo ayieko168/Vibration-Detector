@@ -165,6 +165,76 @@ String CodecKT1::createDeviceDataPacket(float longitude, float latitude, uint64_
   return packet_hex_string;
 }
 
+String CodecKT1::verifyAcknowledgmentPacket(const String& packet, const char* localDeviceId) {
+  
+  // Check if the packet length is valid
+  if (packet.length() != 128) {
+    return "1122"; // Invalid Packet, invalid length
+  }
+
+  // Check the start bit
+  if (packet.substring(0, 4) != "7946") {
+    return "1133"; // Invalid Packet, Invalid Start bit
+  }
+
+  // Extract the packet length
+  int packetLength = strtol(packet.substring(4, 6).c_str(), NULL, 16);
+
+  // Extract the protocol number
+  int protocolNumber = strtol(packet.substring(6, 8).c_str(), NULL, 16);
+
+  // Extract the server ID
+  String serverID = packet.substring(8, 40);
+
+  // Extract the device ID
+  String deviceID = packet.substring(40, 120);
+  const char* deviceIDChar = deviceID.c_str();
+
+  // Convert the hexadecimal string to a byte array
+  String hexString = packet.substring(8, 120);
+  size_t dataSize = hexString.length() / 2;
+  uint8_t data[dataSize];
+  for (size_t i = 0; i < dataSize; i++) {
+    sscanf(hexString.substring(i * 2, i * 2 + 2).c_str(), "%02X", &data[i]);
+  }
+
+  // Calculate the CRC16 (X.25) checksum of the byte array
+  uint16_t calculatedCRC = calculateCRC16(data, dataSize);
+
+  // Extract the received CRC from the packet
+  String receivedCRCStr = packet.substring(120, 124);
+  uint16_t receivedCRC = strtol(receivedCRCStr.c_str(), NULL, 16);
+
+  // Check the CRC
+  if (calculatedCRC != receivedCRC) {
+    Serial.print("Calculated CRC: ");
+    Serial.print(calculatedCRC);
+    Serial.print(" Recieved CRC: ");
+    Serial.println(receivedCRCStr);
+
+    return "1155"; // Invalid Packet, invalid CRC Checksum
+  }
+
+  // Check the stop bit
+  if (packet.substring(124, 128) != "6497") {
+    return "1144"; // Invalid Packet, invalid Stop bit
+  }
+
+  // Check that the recieved device ID is similar to the local device ID
+  char localDeviceIdString[41];
+  for (int i = 0; i < 40; i++) { sprintf(localDeviceIdString + (i * 2), "%02X", localDeviceId[i]); }
+  if (strcmp(localDeviceIdString, deviceIDChar) != 0){
+    
+    // Serial.println(localDeviceIdString);
+    // Serial.println(deviceIDChar);
+
+    return "1166"; // Invalid Packet, disimilar device ID
+  }
+
+  // Return success
+  return "1111"; // Success
+}
+
 
 
 

@@ -1,8 +1,9 @@
 #include <SoftwareSerial.h>
 #include "CodecKT1.h"
 
-const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZh";  //Must be 40 Bytes
+const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZH";  //Must be 40 Bytes
 char* imei = "0356307042441013";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
+String packet = "79463803465475596D797443446153456F634E58485150444F4875466955795178576C5859744F6341676577746665564C7176585068514E47724B45B3D86497";
 
 float longitude = -1.349856;
 float latitude = 32.455678;
@@ -30,6 +31,10 @@ void setup() {
   String deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
   Serial.println("Device Login Packet:");
   Serial.println(deviceLoginPacketString);
+
+  String serverAcknowledgment = codec.verifyAcknowledgmentPacket(packet, deviceId);
+  Serial.println("Server Acknowledgment:");
+  Serial.println(serverAcknowledgment);
 
 }
 

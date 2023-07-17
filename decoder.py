@@ -107,6 +107,37 @@ class Decoder:
       
       return device_information
 
+   def acknowledgement_packet_encoder(self, server_id: bytes, device_id: bytes) -> bytes:
+      
+      packet_hex_string = b""
+      
+      ## Start bit
+      packet_hex_string += b"7946"
+      
+      ## Packet Lenght
+      packet_hex_string += b"ZZ"
+      
+      ## Protocol Number
+      packet_hex_string += b"03"
+      
+      ## Information bit
+      # Server ID
+      packet_hex_string += server_id.upper()
+      # Device ID
+      packet_hex_string += device_id.upper()
+      
+      ## Recalculate the Packet Lenght
+      info_packet = packet_hex_string[8:].decode('utf-8')
+      packet_hex_string = packet_hex_string.replace(b'ZZ', struct.pack('!B', int(len(info_packet)/2)).hex().upper().encode('utf-8'))
+      ## Error Check
+      packet_hex_string += self.calc_crc(info_packet).encode('utf-8')
+      
+      ## Stop bit
+      packet_hex_string += b"6497"
+
+
+      return packet_hex_string.upper() 
+   
    def calc_crc(self, data: str, padded: bool = False) -> str:
       """Calculates the CRC 16 error check value for the given data. Uses CRC 16 x25
 
@@ -175,15 +206,16 @@ if __name__ == '__main__':
    
    decoder = Decoder()
    
-   packet = "794638036CF1D74BCF6ED96F5A4FCA3F771DAEAFC4F8FFA6C3198EF6F9DDAAA850A646583D030C00E515D5BEA2C5BBA900C6B71EFFCC335E4B2AD09302306497"
+   packet = "79463803465475596D797443446153456F634E58485150444F4875466955795178576C5859744F6341676577746665564C7176585068514E47724B45B3D86497"
       
    # print(decoder.createDeviceDataPacket(-1.349856, 32.455678, 1689359519, 10, 512, 1, 3600))
    # print(decoder.createDeviceDataPacket(-1.34987856, 45.78, 1689359675, 1, 3781, 76, 12))
+   print(decoder.acknowledgement_packet_encoder(b'465475596d797443446153456f634e58', b'485150444f4875466955795178576c5859744f6341676577746665564c7176585068514e47724b45'))
    
    print(
       json.dumps(
          decoder.decode_packet_structure(
-            packet, True, True
+            packet, False, True
          ),
          indent=2
       )
@@ -209,11 +241,11 @@ if __name__ == '__main__':
    # )
    
    
-   print(
-      decoder.calc_crc(
-         decoder.decode_packet_structure(packet).get('information_bits')
-      )
-   )
+   # print(
+   #    decoder.calc_crc(
+   #       decoder.decode_packet_structure(packet).get('information_bits')
+   #    )
+   # )
    
    # print(
    #    decoder.login_packet_decoder(
