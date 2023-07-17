@@ -1,5 +1,3 @@
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
@@ -22,7 +20,6 @@ String apn_p = "";                     //APN-Password
 String url = "https://aws-demo.razorinformatics.co.ke/api/v1/sensors";  //URL of Server
 String contentType = "application/json";
 
-Adafruit_MPU6050 mpu;
 SoftwareSerial SWserial(7, 6); // RX, TX
 
 void blink_indicator(int times, int delay_time = 250, int led_pin = ready_led_pin){
@@ -34,26 +31,26 @@ void blink_indicator(int times, int delay_time = 250, int led_pin = ready_led_pi
   }
 }
    
-double get_reading(){
+// double get_reading(){
 
-  double gf_sum = 0.0;
-  for(int i = 1; i <= 50; i++){
-    /* Get new sensor events with the readings */
-    sensors_event_t a, g, temp;
-    mpu.getEvent(&a, &g, &temp);
+//   double gf_sum = 0.0;
+//   for(int i = 1; i <= 50; i++){
+//     /* Get new sensor events with the readings */
+//     sensors_event_t a, g, temp;
+//     mpu.getEvent(&a, &g, &temp);
     
-    double x = g.gyro.x;
-    double y = g.gyro.y;
-    double z = g.gyro.z;
+//     double x = g.gyro.x;
+//     double y = g.gyro.y;
+//     double z = g.gyro.z;
     
-    double gf = sqrt(sq(x) + sq(y) + sq(z));
+//     double gf = sqrt(sq(x) + sq(y) + sq(z));
     
-    gf_sum += gf;
-    delay(5);
-  }
+//     gf_sum += gf;
+//     delay(5);
+//   }
 
-  return gf_sum;
-}
+//   return gf_sum;
+// }
 
 void gsm_send_serial(String command, int delay_time = 500) {
   Serial.println("Send ->: " + command);
@@ -177,9 +174,9 @@ void setup(void) {
 
   blink_indicator(3);
   // set accelerometer and gyro range.
-  mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
-  mpu.setGyroRange(MPU6050_RANGE_250_DEG);
-  mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
+  // mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
+  // mpu.setGyroRange(MPU6050_RANGE_250_DEG);
+  // mpu.setFilterBandwidth(MPU6050_BAND_260_HZ);
 
   gsm_config_time();
   //gsm_config_gprs();

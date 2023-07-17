@@ -85,21 +85,45 @@ int TCPComms::connectInternet() {
   }
 }
 
-String TCPComms::sendHandShake() {
-  // Attach GPRS service: <Blinks indicate network connection state>
-  sim800->println("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\"");
-  _readBuffer(5000);
-  if (_buffer.indexOf(F("CONNECT OK")) != -1) {
+String TCPComms::sendLoginHandShake() {
+  String response;
+
+  // Check if TCP connection is already active
+  sim800->println("AT+CIPSTATUS");
+  _readBuffer(1000);
+  if (_buffer.indexOf(F("STATE: CONNECT OK")) != -1) {
+    // TCP connection is already active
     sim800->println("AT+CIPSEND");
     delay(100); // Wait for the ">"
     sim800->println("MESSAGE FROM DEVICE!");
     sim800->write(26); // Send Ctrl+Z (ASCII code 26)
     _readBuffer(500);
     if (_buffer.indexOf(F("SEND OK")) != -1) {
-      return _buffer;
+      response = _buffer;
+    } else {
+      response = "Error: Failed to send data";
+    }
+  } else {
+    // TCP connection is not active, establish the connection
+    sim800->println("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\"");
+    _readBuffer(5000);
+    if (_buffer.indexOf(F("CONNECT OK")) != -1) {
+      sim800->println("AT+CIPSEND");
+      delay(100); // Wait for the ">"
+      sim800->println("MESSAGE FROM DEVICE!");
+      sim800->write(26); // Send Ctrl+Z (ASCII code 26)
+      _readBuffer(500);
+      if (_buffer.indexOf(F("SEND OK")) != -1) {
+        response = _buffer;
+      } else {
+        response = "Error: Failed to send data";
+      }
+    } else {
+      response = "Error: Failed to establish TCP connection";
     }
   }
-  return "NONE"; // Return an empty string if any step fails
+
+  return response;
 }
 
 String TCPComms::getLocolIP() {

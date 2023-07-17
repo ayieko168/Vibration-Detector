@@ -1,5 +1,6 @@
 #include <SoftwareSerial.h>
 #include "CodecKT1.h"
+#include "TCPComms.h"
 
 const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZH";  //Must be 40 Bytes
 char* imei = "0356307042441013";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
@@ -19,22 +20,32 @@ String server_ip = "151.80.209.133";
 String server_port = "6500";
 
 CodecKT1 codec;
-
+TCPComms tcpcoms;
 
 void setup() {
+
   Serial.begin(9600);
 
-  String deviceDataPacketString = codec.createDeviceDataPacket(longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
-  Serial.println("Device Data Packet:");
-  Serial.println(deviceDataPacketString);
+  // Init the comms modile
+  bool com_state = tcpcoms.begin(10, 11, 12);
+  int conn_state = tcpcoms.connectInternet();
+  Serial.println(conn_state);
+  Serial.println(com_state);
+  Serial.println(tcpcoms.getLocolIP());
+  Serial.println(tcpcoms.getImeiNumber());
+  Serial.println(tcpcoms.sendLoginHandShake());
 
-  String deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
-  Serial.println("Device Login Packet:");
-  Serial.println(deviceLoginPacketString);
+  // String deviceDataPacketString = codec.createDeviceDataPacket(longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
+  // Serial.println("Device Data Packet:");
+  // Serial.println(deviceDataPacketString);
 
-  String serverAcknowledgment = codec.verifyAcknowledgmentPacket(packet, deviceId);
-  Serial.println("Server Acknowledgment:");
-  Serial.println(serverAcknowledgment);
+  // String deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
+  // Serial.println("Device Login Packet:");
+  // Serial.println(deviceLoginPacketString);
+
+  // String serverAcknowledgment = codec.verifyAcknowledgmentPacket(packet, deviceId);
+  // Serial.println("Server Acknowledgment:");
+  // Serial.println(serverAcknowledgment);
 
 }
 

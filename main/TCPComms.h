@@ -20,8 +20,8 @@ class TCPComms {
   public:
     bool begin(int tx_pin, int rx_pin, int reset_pin);
     int connectInternet();
-    String sendHandShake();
-    
+    String sendLoginHandShake();
+
     String getLocolIP();
     String getImeiNumber();
     void testVars();
