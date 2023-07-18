@@ -21,6 +21,7 @@ class TCPComms {
     bool begin(int tx_pin, int rx_pin, int reset_pin);
     int connectInternet();
     String sendLoginHandShake();
+    bool sendDeviceData();
 
     String getLocolIP();
     String getImeiNumber();

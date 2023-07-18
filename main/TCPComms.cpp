@@ -126,6 +126,10 @@ String TCPComms::sendLoginHandShake() {
   return response;
 }
 
+bool TCPComms::sendDeviceData() {
+  
+}
+
 String TCPComms::getLocolIP() {
   // Get Local IP
   sim800->println("AT+CIFSR");
