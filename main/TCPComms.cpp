@@ -35,71 +35,75 @@ bool TCPComms::begin(int _tx_pin, int _rx_pin, int _reset_pin) {
 
 int TCPComms::connectInternet() {
 
-  // Attach GPRS service: <Blinks indicate network connection state>
-  sim800->println("AT+CGATT?");
-  _readBuffer(500);
-  if ((_buffer.indexOf(F("+CGATT: 1"))) != -1) {
-
-    // // Check if connected to INTERNET
-    // sim800->println("AT+CIPSTATUS");
-    // _readBuffer(500);
-    // if((_buffer.indexOf(F("STATE: IP STATUS"))) != -1){
-
-    // Set the APN
-    sim800->println("AT+CSTT=\"Safaricom\"");
-    _readBuffer(500);
-    if ((_buffer.indexOf(F("OK"))) != -1) {
-
-      // Start GPRS (Connect to internet)
-      sim800->println("AT+CIICR");
-      _readBuffer(3000);
-      if ((_buffer.indexOf(F("OK"))) != -1) {
-
-        // Get Local IP
-        sim800->println("AT+CIFSR");
-        _readBuffer(400);
-        if ((_buffer.indexOf(F("."))) != -1) {
-
-          Serial.println("LOCAL IP: ");
-          // Serial.println(_buffer);
-
-          return 200;  // Success
-
-        } else {
-          return 244;
-        }
-
-      } else {
-        return 233;
-      }
-
-    } else {
-      return 222;
-    }
-    // }else {
-    //   return 201; // Already connected
-    // }
-
-  } else {
-    return 211;
+  // Step 1: Check if the SIM800 module is ready
+  sim800->println("AT");
+  _readBuffer(1000); // Wait for the response
+  if ((_buffer.indexOf(F("OK"))) == -1) {
+    // If the response does not contain "OK", the module is not ready.
+    return 201; // Error code: 201 - SIM800 module not ready
   }
+
+  // Step 2: Check if the SIM card is attached and registered to the network
+  sim800->println("AT+CGATT?");
+  _readBuffer(200);
+  if ((_buffer.indexOf(F("+CGATT: 1"))) == -1) {
+    // If the response does not contain "+CGATT: 1", the SIM card is not attached or not registered.
+    return 211; // Error code: 211 - SIM card not attached or not registered
+  }
+
+  // Step 3: Check if already connected to the internet
+  sim800->println("AT+CIPSTATUS");
+  _readBuffer(200);
+  if ((_buffer.indexOf(F("STATE: IP STATUS"))) != -1) {
+    // If the response contains "STATE: IP STATUS", it means the module is already connected to the internet.
+    return 209; // Error code: 299 - Already connected to the internet
+  }
+
+  // Step 4: Set the Access Point Name (APN)
+  sim800->println("AT+CSTT=\"Safaricom\"");
+  _readBuffer(500);
+  if ((_buffer.indexOf(F("OK"))) == -1) {
+    // If the response does not contain "OK", setting the APN failed.
+    return 222; // Error code: 222 - Failed to set APN
+  }
+
+  // Step 5: Start GPRS (Connect to the internet)
+  sim800->println("AT+CIICR");
+  _readBuffer(5000);
+  if ((_buffer.indexOf(F("OK"))) == -1) {
+    // If the response does not contain "OK", GPRS connection failed.
+    return 233; // Error code: 233 - Failed to start GPRS
+  }
+
+  // Step 6: Get Local IP
+  sim800->println("AT+CIFSR");
+  _readBuffer(200);
+  if ((_buffer.indexOf(F("."))) == -1) {
+    // If the response does not contain ".", getting the local IP failed.
+    return 244; // Error code: 244 - Failed to get local IP
+  }
+
+  // If all steps are successful, return success status.
+  return 200; // Success - Connected to the internet
 }
 
-String TCPComms::sendLoginHandShake() {
+String TCPComms::sendDataWithResponse(const String& payload) {
   String response;
 
   // Check if TCP connection is already active
   sim800->println("AT+CIPSTATUS");
-  _readBuffer(1000);
+  _readBuffer(500);
   if (_buffer.indexOf(F("STATE: CONNECT OK")) != -1) {
     // TCP connection is already active
     sim800->println("AT+CIPSEND");
     delay(100); // Wait for the ">"
-    sim800->println("MESSAGE FROM DEVICE!");
+    sim800->println(payload); // Send the payload
     sim800->write(26); // Send Ctrl+Z (ASCII code 26)
     _readBuffer(500);
     if (_buffer.indexOf(F("SEND OK")) != -1) {
-      response = _buffer;
+      String serverResponse = _buffer.substring(_buffer.indexOf("SEND OK") + 8);
+      serverResponse.trim();
+      response = serverResponse;
     } else {
       response = "Error: Failed to send data";
     }
@@ -108,13 +112,16 @@ String TCPComms::sendLoginHandShake() {
     sim800->println("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\"");
     _readBuffer(5000);
     if (_buffer.indexOf(F("CONNECT OK")) != -1) {
+      
       sim800->println("AT+CIPSEND");
       delay(100); // Wait for the ">"
-      sim800->println("MESSAGE FROM DEVICE!");
+      sim800->println(payload); // Send the payload
       sim800->write(26); // Send Ctrl+Z (ASCII code 26)
       _readBuffer(500);
       if (_buffer.indexOf(F("SEND OK")) != -1) {
-        response = _buffer;
+        String serverResponse = _buffer.substring(_buffer.indexOf("SEND OK") + 8);
+        serverResponse.trim();
+        response = serverResponse;
       } else {
         response = "Error: Failed to send data";
       }
@@ -148,17 +155,22 @@ String TCPComms::getLocolIP() {
 }
 
 String TCPComms::getImeiNumber() {
-  // Get Local IP
+  // Get IMEI Number
   sim800->println("AT+GSN");
   _readBuffer(400);
   if ((_buffer.indexOf(F("OK"))) != -1) {
-
-    String ret_buff = _buffer.substring(String("AT+CIFSR").length());
-    ret_buff.trim();
-    return ret_buff;  // Success
-
+    int imeiStart = _buffer.indexOf('\n') + 1; // Find the start of the IMEI number
+    int imeiEnd = _buffer.indexOf('\r', imeiStart); // Find the end of the IMEI number (before the carriage return)
+    
+    if (imeiEnd - imeiStart == 15) {
+      String imei = _buffer.substring(imeiStart, imeiEnd); // Extract the IMEI number
+      imei = "0" + imei; // Pad the IMEI to 16 characters with leading zero
+      return imei;
+    } else {
+      return "NONE2"; // Invalid IMEI length
+    }
   } else {
-    return "NONE";
+    return "NONE1"; // Error in AT command response
   }
 }
 

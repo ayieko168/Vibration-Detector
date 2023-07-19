@@ -20,7 +20,7 @@ class TCPComms {
   public:
     bool begin(int tx_pin, int rx_pin, int reset_pin);
     int connectInternet();
-    String sendLoginHandShake();
+    String sendDataWithResponse(const String& payload);
     bool sendDeviceData();
 
     String getLocolIP();
