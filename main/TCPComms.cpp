@@ -19,13 +19,15 @@ bool TCPComms::begin(int _tx_pin, int _rx_pin, int _reset_pin) {
     digitalWrite(reset_pin, HIGH);
 
     // Reset the SIM800 at first start
-    digitalWrite(reset_pin, LOW);
-    delay(100);
-    digitalWrite(reset_pin, HIGH);
+    // digitalWrite(reset_pin, LOW);
+    // delay(100);
+    // digitalWrite(reset_pin, HIGH);
 
     // Create the software serial
     sim800 = new SoftwareSerial(tx_pin, rx_pin);  // Create a new SoftwareSerial instance
     sim800->begin(9600);                          // Initialize the SoftwareSerial
+
+    delay(500);
     
     // Test the serial
     sim800->println(F("AT"));
@@ -34,6 +36,10 @@ bool TCPComms::begin(int _tx_pin, int _rx_pin, int _reset_pin) {
       return true;
     } 
     else {
+
+      delete sim800;
+      sim800 = NULL;
+
       return false;
     }
   } 
@@ -46,15 +52,18 @@ void TCPComms::resetSim800() {
   digitalWrite(reset_pin, LOW);
   delay(100);
   digitalWrite(reset_pin, HIGH);
+
+  delay(2000);
 }
 
 int TCPComms::connectInternet() {
 
   // Step 1: Check if the SIM800 module is ready
   sim800->println("AT");
-  _readBuffer(1000); // Wait for the response
+  _readBuffer(500); // Wait for the response
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", the module is not ready.
+    Serial.println(_buffer);
     return 201; // Error code: 201 - SIM800 module not ready
   }
 
@@ -63,30 +72,33 @@ int TCPComms::connectInternet() {
   _readBuffer(200);
   if ((_buffer.indexOf(F("+CGATT: 1"))) == -1) {
     // If the response does not contain "+CGATT: 1", the SIM card is not attached or not registered.
+    Serial.println(_buffer);
     return 211; // Error code: 211 - SIM card not attached or not registered
   }
 
-  // Step 3: Check if already connected to the internet
-  sim800->println("AT+CIPSTATUS");
-  _readBuffer(200);
-  if ((_buffer.indexOf(F("STATE: IP STATUS"))) != -1) {
-    // If the response contains "STATE: IP STATUS", it means the module is already connected to the internet.
-    return 209; // Error code: 299 - Already connected to the internet
-  }
+  // // Step 3: Check if already connected to the internet
+  // sim800->println("AT+CIPSTATUS");
+  // _readBuffer(200);
+  // if ((_buffer.indexOf(F("STATE: IP STATUS"))) != -1) {
+  //   // If the response contains "STATE: IP STATUS", it means the module is already connected to the internet.
+  //   return 209; // Error code: 299 - Already connected to the internet
+  // }
 
   // Step 4: Set the Access Point Name (APN)
   sim800->println("AT+CSTT=\"Safaricom\"");
   _readBuffer(500);
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", setting the APN failed.
+    Serial.println(_buffer);
     return 222; // Error code: 222 - Failed to set APN
   }
 
   // Step 5: Start GPRS (Connect to the internet)
   sim800->println("AT+CIICR");
-  _readBuffer(5000);
+  _readBuffer(6000);
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", GPRS connection failed.
+    Serial.println(_buffer);
     return 233; // Error code: 233 - Failed to start GPRS
   }
 
@@ -95,10 +107,12 @@ int TCPComms::connectInternet() {
   _readBuffer(200);
   if ((_buffer.indexOf(F("."))) == -1) {
     // If the response does not contain ".", getting the local IP failed.
+    Serial.println(_buffer);
     return 244; // Error code: 244 - Failed to get local IP
   }
 
   // If all steps are successful, return success status.
+  Serial.println(_buffer);
   return 200; // Success - Connected to the internet
 }
 
@@ -122,6 +136,11 @@ String TCPComms::sendDataWithResponse(const String& payload) {
     } else {
       response = "Error: Failed to send data";
     }
+
+    // Close the TCP connection
+    sim800->println("AT+CIPCLOSE");
+    _readBuffer(200);
+
   } else {
     // TCP connection is not active, establish the connection
     sim800->println("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\"");
@@ -140,6 +159,11 @@ String TCPComms::sendDataWithResponse(const String& payload) {
       } else {
         response = "Error: Failed to send data";
       }
+
+      // Close the TCP connection
+      sim800->println("AT+CIPCLOSE");
+      _readBuffer(200);
+
     } else {
       response = "Error: Failed to establish TCP connection";
     }
