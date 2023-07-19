@@ -27,13 +27,12 @@ void setup() {
   Serial.begin(9600);
 
   // Init the comms modile
-  bool com_state = tcpcoms.begin(10, 11, 12);
-  int conn_state = tcpcoms.connectInternet();
-  Serial.println(conn_state);
-  Serial.println(com_state);
-  Serial.println(tcpcoms.getLocolIP());
+  Serial.println(tcpcoms.begin(10, 11, 12));
   Serial.println(tcpcoms.getImeiNumber());
-  Serial.println(tcpcoms.sendLoginHandShake());
+  
+  Serial.println(tcpcoms.connectInternet());
+  Serial.println(tcpcoms.getLocolIP());
+  Serial.println(tcpcoms.sendDataWithResponse(String("NEW MESSAGE FROM DEVICE!!")));
 
   // String deviceDataPacketString = codec.createDeviceDataPacket(longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
   // Serial.println("Device Data Packet:");
