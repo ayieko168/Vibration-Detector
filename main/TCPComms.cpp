@@ -14,23 +14,38 @@ bool TCPComms::begin(int _tx_pin, int _rx_pin, int _reset_pin) {
     rx_pin = _rx_pin;
     reset_pin = _reset_pin;
 
+    // Set the reset pin and ensure it is always HIGH
+    pinMode(reset_pin, OUTPUT);
+    digitalWrite(reset_pin, HIGH);
+
+    // Reset the SIM800 at first start
+    digitalWrite(reset_pin, LOW);
+    delay(100);
+    digitalWrite(reset_pin, HIGH);
+
+    // Create the software serial
     sim800 = new SoftwareSerial(tx_pin, rx_pin);  // Create a new SoftwareSerial instance
     sim800->begin(9600);                          // Initialize the SoftwareSerial
-
-
+    
     // Test the serial
     sim800->println(F("AT"));
     _readBuffer(300);
-
-    // Read returned
     if ((_buffer.indexOf(F("OK"))) != -1) {
       return true;
-    } else {
+    } 
+    else {
       return false;
     }
-  } else {
+  } 
+  else {
     return true;
   }
+}
+
+void TCPComms::resetSim800() {
+  digitalWrite(reset_pin, LOW);
+  delay(100);
+  digitalWrite(reset_pin, HIGH);
 }
 
 int TCPComms::connectInternet() {

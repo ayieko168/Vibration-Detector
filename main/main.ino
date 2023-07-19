@@ -28,8 +28,10 @@ void setup() {
 
   // Init the comms modile
   Serial.println(tcpcoms.begin(10, 11, 12));
+  tcpcoms.resetSim800();
+  delay(5000);
   Serial.println(tcpcoms.getImeiNumber());
-  
+
   Serial.println(tcpcoms.connectInternet());
   Serial.println(tcpcoms.getLocolIP());
   Serial.println(tcpcoms.sendDataWithResponse(String("NEW MESSAGE FROM DEVICE!!")));

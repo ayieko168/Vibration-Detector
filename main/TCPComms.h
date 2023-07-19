@@ -19,6 +19,7 @@ class TCPComms {
 
   public:
     bool begin(int tx_pin, int rx_pin, int reset_pin);
+    void resetSim800();
     int connectInternet();
     String sendDataWithResponse(const String& payload);
     bool sendDeviceData();
