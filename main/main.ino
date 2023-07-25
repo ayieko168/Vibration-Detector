@@ -3,9 +3,10 @@
 #include "TCPComms.h"
 
 const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZH";  //Must be 40 Bytes
-char* imei = "0356307042441013";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
+char* imei = "NULL0";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
 String deviceLoginPacketString = "NULL";
 const int BOARD_RESET_PIN = 2;
+String serverResponse;
 
 float longitude = -1.349856;
 float latitude = 32.455678;
@@ -94,24 +95,35 @@ void setup() {
 
 void loop() {
 
-  /* ------------ Create the login packet if not created --------------- */
-  if (deviceLoginPacketString == "NULL"){
-    deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
-    Serial.println("Device Login Packet:");
-    Serial.println(deviceLoginPacketString);
-  }
+  // /* ------------ Create the login packet if not created --------------- */
+  // if (deviceLoginPacketString == "NULL"){
+  //   bool isLoginValid = false;
+  //   while(!isLoginValid){
+  //     deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
+  //     isLoginValid = codec.validateLoginPacket(deviceLoginPacketString);
+  //     Serial.println("Device Login Packet:");
+  //     Serial.println(deviceLoginPacketString);
+  //     delay(1000);
+  //   }
+  // }
 
-  /* --------------- Send the login packet -----------------*/
-  String serverResponse = tcpcoms.sendDataWithResponse(deviceLoginPacketString);
-  Serial.println("Server respponse:");
-  Serial.println(serverResponse);
+  // /* --------------- Send the login packet -----------------*/
+  // serverResponse = "";
+  // serverResponse = tcpcoms.sendDataWithResponse(deviceLoginPacketString);
+  // Serial.println("1. Server respponse:");
+  // Serial.println(serverResponse);
 
   /* --------------- Send the data packet -----------------*/
-  String serverResponse = tcpcoms.sendDataWithResponse(deviceLoginPacketString);
-  Serial.println("Server respponse:");
-  Serial.println(serverResponse);
+  serverResponse = "";
+  String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
+  String sentErrorCheck = deviceDataPacketString.substring(68, 72);
+  serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
+  Serial.print("Recieved Error Check: ");
+  Serial.print(serverResponse);
+  Serial.print(" Sent Error Cech: ");
+  Serial.println(sentErrorCheck);
 
-  delay(5000);  // Wait X seconds before sending another packet.
+  // delay(5000);  // Wait X seconds before sending another packet.
 }
 
 

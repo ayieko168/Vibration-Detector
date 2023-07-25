@@ -9,7 +9,9 @@ class CodecKT1 {
     uint16_t calculateCRC16(uint8_t* data, size_t dataSize);
     String createLoginPacket(const char* imei, const char* deviceId);
     String createDeviceDataPacket(float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage);
+    String createDeviceDataPacket(const char* imei, float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage);
     String verifyAcknowledgmentPacket(const String& packet, const char* deviceId);
+    bool validateLoginPacket(const String& packet);
     
 };
 
