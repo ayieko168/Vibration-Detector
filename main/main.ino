@@ -5,7 +5,6 @@
 const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZH";  //Must be 40 Bytes
 char* imei = "0356307042441013";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
 String deviceLoginPacketString = "NULL";
-int connectionStatus = -1;
 const int BOARD_RESET_PIN = 2;
 
 float longitude = -1.349856;
@@ -50,6 +49,26 @@ void setup() {
   Serial.print("IMEI Number set to: ");
   Serial.println(imei);
 
+  /* -------------- Connect to the Internet ----------------*/
+  int connectionStatus = -1;
+  int connectionRetries = 0;
+  while (connectionStatus != 200 && connectionStatus != 202){
+    connectionStatus = tcpcoms.connectInternet();
+    Serial.print("Internet Connection Status: ");
+    Serial.println(connectionStatus); 
+    delay(5000);
+
+    connectionRetries ++;
+    if (connectionRetries >= 5){
+      Serial.println("Resetting the SIM800 and retrying in 10 Seconds...");
+      tcpcoms.resetSim800();
+      connectionRetries = 0;
+      delay(10000);
+    }
+  }
+  
+
+
   // Init the comms modile
   // Serial.println(tcpcoms.begin(10, 11, 12));
   // tcpcoms.resetSim800();
@@ -75,27 +94,6 @@ void setup() {
 
 void loop() {
 
-  /* -------------- Connect to the Internet ----------------*/
-  for (int connectionAttempts = 0; connectionAttempts < 5; connectionAttempts++) {
-    connectionStatus = tcpcoms.connectInternet();
-
-    if (connectionStatus == 200) {
-      // Successfully connected to the internet, proceed with the rest of the logic
-      break;
-    } else {
-      // Failed to connect to the internet, retry after a short delay
-      Serial.print("Connection attempt ");
-      Serial.print(connectionAttempts + 1);
-      Serial.print(" failed. Retrying in 5 seconds...");
-      delay(5000);
-
-      // If the retries end without success, reset the device and/or Send an SMS
-      if (connectionAttempts == 4){
-        digitalWrite(BOARD_RESET_PIN, LOW);
-      }
-    }
-  }
-
   /* ------------ Create the login packet if not created --------------- */
   if (deviceLoginPacketString == "NULL"){
     deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
@@ -108,7 +106,12 @@ void loop() {
   Serial.println("Server respponse:");
   Serial.println(serverResponse);
 
-  delay(5000);
+  /* --------------- Send the data packet -----------------*/
+  String serverResponse = tcpcoms.sendDataWithResponse(deviceLoginPacketString);
+  Serial.println("Server respponse:");
+  Serial.println(serverResponse);
+
+  delay(5000);  // Wait X seconds before sending another packet.
 }
 
 

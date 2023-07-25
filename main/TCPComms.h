@@ -15,7 +15,7 @@ class TCPComms {
 
   protected:
     String _buffer;
-    void _readBuffer(uint32_t timeout = 2000);
+    void _readBuffer(uint32_t timeout = 5000);
 
   public:
     bool begin(int tx_pin, int rx_pin, int reset_pin);

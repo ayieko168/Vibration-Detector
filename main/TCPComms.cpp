@@ -63,7 +63,7 @@ int TCPComms::connectInternet() {
   _readBuffer(500); // Wait for the response
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", the module is not ready.
-    Serial.println(_buffer);
+    // Serial.println(_buffer);
     return 201; // Error code: 201 - SIM800 module not ready
   }
 
@@ -72,34 +72,41 @@ int TCPComms::connectInternet() {
   _readBuffer(200);
   if ((_buffer.indexOf(F("+CGATT: 1"))) == -1) {
     // If the response does not contain "+CGATT: 1", the SIM card is not attached or not registered.
-    Serial.println(_buffer);
+    // Serial.println(_buffer);
     return 211; // Error code: 211 - SIM card not attached or not registered
   }
 
-  // // Step 3: Check if already connected to the internet
-  // sim800->println("AT+CIPSTATUS");
-  // _readBuffer(200);
-  // if ((_buffer.indexOf(F("STATE: IP STATUS"))) != -1) {
-  //   // If the response contains "STATE: IP STATUS", it means the module is already connected to the internet.
-  //   return 209; // Error code: 299 - Already connected to the internet
-  // }
+  // Step 3: Check internet connectivity
+  sim800->println("AT+CIPSTART=\"TCP\",\"8.8.8.8\",\"53\"");
+  _readBuffer(5000);
+  if ((_buffer.indexOf(F("CONNECT OK"))) == -1) {
+    // If the response does not contain "CONNECT OK", the TCP connection failed.
+    // Serial.println(_buffer);
+    return 222; // Error code: 222 - Not connected to the internet
+  }else{
+    // Connection is OK. Close the TCP connection immediately since we only wanted to check connectivity
+    sim800->println("AT+CIPCLOSE");
+    _readBuffer(500);
+    return 202;
+  }
+
 
   // Step 4: Set the Access Point Name (APN)
   sim800->println("AT+CSTT=\"Safaricom\"");
   _readBuffer(500);
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", setting the APN failed.
-    Serial.println(_buffer);
-    return 222; // Error code: 222 - Failed to set APN
+    // Serial.println(_buffer);
+    return 233; // Error code: 233 - Failed to set APN
   }
 
   // Step 5: Start GPRS (Connect to the internet)
   sim800->println("AT+CIICR");
-  _readBuffer(6000);
+  _readBuffer(4000);
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", GPRS connection failed.
-    Serial.println(_buffer);
-    return 233; // Error code: 233 - Failed to start GPRS
+    // Serial.println(_buffer);
+    return 244; // Error code: 244 - Failed to start GPRS
   }
 
   // Step 6: Get Local IP
@@ -107,12 +114,12 @@ int TCPComms::connectInternet() {
   _readBuffer(200);
   if ((_buffer.indexOf(F("."))) == -1) {
     // If the response does not contain ".", getting the local IP failed.
-    Serial.println(_buffer);
-    return 244; // Error code: 244 - Failed to get local IP
+    // Serial.println(_buffer);
+    return 255; // Error code: 255 - Failed to get local IP
   }
 
   // If all steps are successful, return success status.
-  Serial.println(_buffer);
+  // Serial.println(_buffer);
   return 200; // Success - Connected to the internet
 }
 
@@ -122,51 +129,68 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   // Check if TCP connection is already active
   sim800->println("AT+CIPSTATUS");
   _readBuffer(500);
-  if (_buffer.indexOf(F("STATE: CONNECT OK")) != -1) {
-    // TCP connection is already active
-    sim800->println("AT+CIPSEND");
-    delay(100); // Wait for the ">"
-    sim800->println(payload); // Send the payload
-    sim800->write(26); // Send Ctrl+Z (ASCII code 26)
-    _readBuffer(500);
-    if (_buffer.indexOf(F("SEND OK")) != -1) {
-      String serverResponse = _buffer.substring(_buffer.indexOf("SEND OK") + 8);
-      serverResponse.trim();
-      response = serverResponse;
-    } else {
-      response = "Error: Failed to send data";
-    }
+  bool tcpConnected = _buffer.indexOf(F("STATE: CONNECT OK")) != -1;
 
-    // Close the TCP connection
-    sim800->println("AT+CIPCLOSE");
-    _readBuffer(200);
-
-  } else {
+  if (!tcpConnected) {
     // TCP connection is not active, establish the connection
     sim800->println("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\"");
     _readBuffer(5000);
-    if (_buffer.indexOf(F("CONNECT OK")) != -1) {
-      
-      sim800->println("AT+CIPSEND");
-      delay(100); // Wait for the ">"
-      sim800->println(payload); // Send the payload
-      sim800->write(26); // Send Ctrl+Z (ASCII code 26)
-      _readBuffer(500);
-      if (_buffer.indexOf(F("SEND OK")) != -1) {
-        String serverResponse = _buffer.substring(_buffer.indexOf("SEND OK") + 8);
-        serverResponse.trim();
-        response = serverResponse;
-      } else {
-        response = "Error: Failed to send data";
-      }
-
-      // Close the TCP connection
-      sim800->println("AT+CIPCLOSE");
-      _readBuffer(200);
-
-    } else {
+    if (_buffer.indexOf(F("CONNECT OK")) == -1) {
       response = "Error: Failed to establish TCP connection";
+      return response;
     }
+  }
+
+  // Sending data to the server
+  sim800->print("AT+CIPSEND=");
+  sim800->println(payload.length());
+  delay(100); // Wait for the ">"
+  sim800->print(payload); // Send the payload
+  sim800->write(26); // Send Ctrl+Z (ASCII code 26)
+
+  // Wait for the response from the server
+  unsigned long timeout = millis() + 5000; // Set a timeout of 5 seconds
+  _buffer = ""; // Clear the buffer
+
+  bool responseStarted = false;
+  while (timeout > millis()) {
+    if (sim800->available()) {
+      char c = sim800->read();
+      _buffer += c;
+
+      // Check if the server response has started
+      if (!responseStarted) {
+        int sendOkIndex = _buffer.indexOf(F("SEND OK"));
+        if (sendOkIndex != -1) {
+          responseStarted = true;
+          _buffer = _buffer.substring(sendOkIndex + 8); // Skip "SEND OK" and the newline characters
+        }
+      }
+    }
+  }
+
+  // Check if the server response has been fully received
+  if (!responseStarted) {
+    response = "Error: Server response not fully received or timeout";
+  } else {
+    // Remove leading newline characters, if any
+    _buffer.trim();
+
+    // Check if "CLOSED" is present at the end of the response and remove it
+    int closedIndex = _buffer.indexOf(F("CLOSED"));
+    if (closedIndex != -1 && closedIndex == (_buffer.length() - 6)) {
+      _buffer = _buffer.substring(0, closedIndex);
+      _buffer.trim();
+    }
+
+    // Extract the server response (if available)
+    response = _buffer;
+  }
+
+  // Close the TCP connection if it was not already open
+  if (!tcpConnected) {
+    sim800->println("AT+CIPCLOSE");
+    _readBuffer(200);
   }
 
   return response;
@@ -224,7 +248,7 @@ void TCPComms::testVars() {
   Serial.println(_buffer);
 }
 
-void TCPComms::_readBuffer(uint32_t timeout = 2000) {
+void TCPComms::_readBuffer(uint32_t timeout = 5000) {
   _buffer = "";
   uint64_t timeOld = millis();
   while (!sim800->available() && !(millis() > timeOld + timeout)) { ; }
