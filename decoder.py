@@ -814,11 +814,22 @@ class CodecKT1Decoder:
         return packet_hex_string.upper()
         
 if __name__ == '__main__':
+    
+    packet = "EEEE160242134974BFA36CAA0000000064B1949F08662620339021060C010E100000EF56AAAA"
+
+    #############################  CodecKT1 Tests  ######################################
 
     decoder = CodecKT1Decoder()
     print(
         json.dumps(
-            decoder.decode_packet_structure("EEEE1602BFACC8154201D29D0000000064B1949F08662620339021060A010E1002003402AAAA"),
+            decoder.decode_packet_structure(packet),
+            indent=2
+        )
+    )
+    
+    print(
+        json.dumps(
+            decoder.device_data_decoder(packet),
             indent=2
         )
     )

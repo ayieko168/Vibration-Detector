@@ -10,6 +10,7 @@ String serverResponse;
 /* GPS Module Variables */
 const int GPSRXPin = 8, GPSTXPin = 7;
 const uint32_t GPSBaud = 9600;
+int dataAquisitionRetries = 0;
 
 float longitude = -1.349856;
 float latitude = 32.455678;
@@ -88,8 +89,9 @@ void setup() {
 
 void loop() {
 
-  /* ------------------ Extract the variable values from the sensors -----------------*/
-  for (int gpsReadRuns = 0; gpsReadRuns < 200; gpsReadRuns++){  // Try reading 200 times and break immedietly the GPS send me some data
+  /* ------------------ Extract the variable values from the sensors and gsm -----------------*/
+  // GPS Sensor
+  for (int gpsReadRuns = 0; gpsReadRuns < 500; gpsReadRuns++){  // Try reading 500 times and break immedietly the GPS send me some data
     if (gpsSerial.available() > 0) {
 
       if (gps.encode(gpsSerial.read())) {
@@ -140,6 +142,9 @@ void loop() {
         }
 
         Serial.println();
+        Serial.print("GPS Data Aquisition Retries: ");
+        Serial.println(dataAquisitionRetries);
+        dataAquisitionRetries = 0;
         break;
       }
     }
@@ -147,7 +152,11 @@ void loop() {
     // if (millis() > 5000 && gps.charsProcessed() < 10){
     //   Serial.println(F("No GPS data received: check wiring"));
     // }
+
+    dataAquisitionRetries ++;
   }
+
+  // 
 
   /* --------------- Send the data packet -----------------*/
   // serverResponse = "";
@@ -161,6 +170,7 @@ void loop() {
   // Serial.println(sentErrorCheck);
 
   // delay(5000);  // Wait X seconds before sending another packet.
+  Serial.println("==================================");
 }
 
 
