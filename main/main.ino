@@ -1,12 +1,15 @@
-#include <SoftwareSerial.h>
+#include <TinyGPS++.h>
 #include "CodecKT1.h"
 #include "TCPComms.h"
 
-const char* deviceId = "gBhmSbJlmIHuRbvgxfRajJTrQSGoZoZqJZDEPNZH";  //Must be 40 Bytes
-char* imei = "NULL0";                                    //Must be 16 bytes  sprintf(imei, "%016s", imei);
+char* imei = "NULL0";
 String deviceLoginPacketString = "NULL";
 const int BOARD_RESET_PIN = 2;
 String serverResponse;
+
+/* GPS Module Variables */
+const int GPSRXPin = 8, GPSTXPin = 7;
+const uint32_t GPSBaud = 9600;
 
 float longitude = -1.349856;
 float latitude = 32.455678;
@@ -16,15 +19,13 @@ uint16_t acceleration = 512;
 uint8_t state = 1;
 uint16_t battVoltage = 3600;
 
-// TCP Variables
-String apn = "Safaricom";
-String server_ip = "151.80.209.133";
-String server_port = "6500";
-
 int connectedToInterent;
 
 CodecKT1 codec;
 TCPComms tcpcoms;
+TinyGPSPlus gps;
+SoftwareSerial gpsSerial(GPSRXPin, GPSTXPin);
+
 
 void setup() {
 
@@ -60,6 +61,8 @@ void setup() {
   Serial.print("Current Timestamp: ");
   Serial.println(currentTimeStamp);
 
+  /* ----------------- GPS Sensor ------------------*/
+
   /* -------------- Connect to the Internet ----------------*/
   // int connectionStatus = -1;
   // int connectionRetries = 0;
@@ -77,57 +80,81 @@ void setup() {
   //     delay(10000);
   //   }
   // }
-  
 
-
-  // Init the comms modile
-  // Serial.println(tcpcoms.begin(10, 11, 12));
-  // tcpcoms.resetSim800();
-  // Serial.println(tcpcoms.getImeiNumber());
-
-  // Serial.println(tcpcoms.connectInternet());
-  // Serial.println(tcpcoms.getLocolIP());
-  // Serial.println(tcpcoms.sendDataWithResponse(String("NEW MESSAGE FROM DEVICE!!")));
-
-  // String deviceDataPacketString = codec.createDeviceDataPacket(longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
-  // Serial.println("Device Data Packet:");
-  // Serial.println(deviceDataPacketString);
-
-  // String deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
-  // Serial.println("Device Login Packet:");
-  // Serial.println(deviceLoginPacketString);
-
-  // String serverAcknowledgment = codec.verifyAcknowledgmentPacket(packet, deviceId);
-  // Serial.println("Server Acknowledgment:");
-  // Serial.println(serverAcknowledgment);
+  // GPS Serial
+  gpsSerial.begin(GPSBaud);
 
 }
 
 void loop() {
 
-  // /* ------------ Create the login packet if not created --------------- */
-  // if (deviceLoginPacketString == "NULL"){
-  //   bool isLoginValid = false;
-  //   while(!isLoginValid){
-  //     deviceLoginPacketString = codec.createLoginPacket(imei, deviceId);
-  //     isLoginValid = codec.validateLoginPacket(deviceLoginPacketString);
-  //     Serial.println("Device Login Packet:");
-  //     Serial.println(deviceLoginPacketString);
-  //     delay(1000);
-  //   }
-  // }
+  /* ------------------ Extract the variable values from the sensors -----------------*/
+  for (int gpsReadRuns = 0; gpsReadRuns < 200; gpsReadRuns++){  // Try reading 200 times and break immedietly the GPS send me some data
+    if (gpsSerial.available() > 0) {
 
-  // /* --------------- Send the login packet -----------------*/
-  // serverResponse = "";
-  // serverResponse = tcpcoms.sendDataWithResponse(deviceLoginPacketString);
-  // Serial.println("1. Server respponse:");
-  // Serial.println(serverResponse);
+      if (gps.encode(gpsSerial.read())) {
+
+        if (gps.location.isValid()) {
+          latitude = static_cast<float>(gps.location.lat());
+          Serial.print(F("- latitude: "));
+          Serial.println(gps.location.lat(), 8);
+
+          longitude = static_cast<float>(gps.location.lng());
+          Serial.print(F("- longitude: "));
+          Serial.println(gps.location.lng(), 8);
+
+        } else {
+          longitude = 0;
+          latitude = 0;
+          Serial.println(F("- location: INVALID"));
+        }
+
+        Serial.print(F("- speed: "));
+        if (gps.speed.isValid()) {
+
+          acceleration = static_cast<uint16_t>(gps.speed.kmph());
+          Serial.print(gps.speed.kmph());
+          Serial.println(F(" km/h"));
+        } else {
+          acceleration = 0;
+          Serial.println(F("INVALID"));
+        }
+
+        Serial.print(F("- Satellites: "));
+        if (gps.satellites.isValid()) {
+
+          uint32_t sats_32 = gps.satellites.value();
+          if (sats_32 <= UINT8_MAX) {
+            // Value can be safely represented in uint8_t range
+            satellites = static_cast<uint8_t>(sats_32);
+          } else {
+            // Value exceeds the uint8_t range, handle the overflow or truncation
+            // For example, you may choose to saturate the value to the maximum representable value
+            satellites = 0;
+          }
+          Serial.print(gps.satellites.value());
+        } else {
+
+          satellites = UINT8_MAX;
+          Serial.println(F("INVALID"));
+        }
+
+        Serial.println();
+        break;
+      }
+    }
+
+    // if (millis() > 5000 && gps.charsProcessed() < 10){
+    //   Serial.println(F("No GPS data received: check wiring"));
+    // }
+  }
 
   /* --------------- Send the data packet -----------------*/
   // serverResponse = "";
-  // String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
+  String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
   // String sentErrorCheck = deviceDataPacketString.substring(68, 72);
   // serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
+  Serial.println(deviceDataPacketString);
   // Serial.print("Recieved Error Check: ");
   // Serial.print(serverResponse);
   // Serial.print(" Sent Error Cech: ");
@@ -136,23 +163,4 @@ void loop() {
   // delay(5000);  // Wait X seconds before sending another packet.
 }
 
-
-void checkLoginDataLenths(){
-  /*
-  A utility that can be used to check the length of the device_id and device_imei values.
-  This function should be run every time a the begining of the loop.
-  */
-
-  size_t deviceIdLength = strlen(deviceId);
-  size_t imeiLength = strlen(imei);
-
-  if(deviceIdLength < 40 || imeiLength < 16){
-    Serial.print(F("[CRITICAL] One of the Login Data parts has a length less than needed; "));
-    Serial.print("Devive ID len: ");
-    Serial.print(deviceIdLength);
-    Serial.print(" IMEI len: ");
-    Serial.println(imeiLength);
-  }
-  
-}
 
