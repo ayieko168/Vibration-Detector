@@ -621,46 +621,144 @@ class ConcoxDecoder:
 class KarimuDecoder:
 
     def __init__(self) -> None:
-        
         pass
+
+class CodecKT1Decoder:
     
-    def login_decoder(self, login_packet) -> tuple[bytes, dict]:
+    def __init__(self) -> None:
         """
-        Takes the raw login hex bytes packet.
-
-        Response is a tuple containing the following fields:
-         - response packet<bytes> - A response to send to the device
-         - extracted data<dict> - A dictionary containing extracted infromation from the packet.
+        CodecKT1 Decoder
         """
+   
+   
+    def decode_packet_structure(self, packet: str, padded: bool = False, print_length: bool = False) -> dict:
+      """Decode the structure of a packet according to the CodecKT1 protocol.
+      The protocol is as follows:
+      - Start Bit: 2.0 bytes.
+      - Packet Length: 1.0 bytes.
+      - Protocol Number: 1.0 bytes.
+      - Information Bits: 56.0 bytes.
+      - Error Ckeck: 2.0 bytes.
+      - Stop Bit: 2.0 bytes.
 
-        packet_structure = self.decode_packet_format(login_packet)
+      Args:
+         packet (str): A string with the hex packet value to be decoded.
+         padded (bool): If true, will add a whitespace between each byte.
 
+      Returns:
+         dict: A dictiobnary with the deconstructed packet structure. The keys are the structure part, the value is the part of the packet of the structure.
+      """
+      
+      ## Clean the packet
+      packet = packet.upper().strip().replace(' ', '')
+      
+      ## The packet structure
+      structure = {
+         'start_bit': packet[:4],
+         'packet_length': packet[4:6],
+         'protocol_number': packet[6:8],
+         'information_bits': packet[8:-8],
+         'error_ckeck': packet[-8:-4],
+         'stop_bit': packet[-4:]
+      }
+      
+      ## Print the length if requested
+      if print_length:
+         for k, v in structure.items():
+            print(f"- {k.title().replace('_', ' ')}: {len(v)/2} bytes.") 
+      
+      ## Add padding if needed
+      if padded:
+         for k, v in structure.items():
+            new_value = ' '.join(v[i:i+2] for i in range(0, len(v), 2))
+            structure[k] = new_value
+      
+      ## return the results
+      return structure
+   
+    def login_packet_decoder(self, packet: str) -> list[bytes]:
+        ## Get the structure of the data packet
+        packet_structure = self.decode_packet_structure(packet)
 
+        ## Decode the data according to the protocol
+        device_imei_packet = packet_structure['information_bits'][:32]
+        device_id_packet = packet_structure['information_bits'][32:]
 
-    ##### HELPER FUNCTIONS  ##### 
-    def decode_packet_format(self, packet: bytes) -> dict:
-        """
-        Function to split the data packet sent by the device for easy parsing.
-        Splits the data usingnthe general format of sent data packet.
-        """
-        
-        # print(packet)
-        
-        packet = packet.decode('utf-8').upper()
-        hexbytes = packet.strip().replace(' ', '')
-        
-        split_dict = {
-            "start_bit": hexbytes[:4].upper(),
-            "packet_length": hexbytes[4:6].upper(),
-            "protocol_number": hexbytes[6:8].upper(),
-            "information_content": hexbytes[8:-8].upper(),
-            "error_check": hexbytes[-8:-4].upper(),
-            "stop_bit": hexbytes[-4:].upper()
+        ## Decode the hex to ascii
+        device_imei = b"".fromhex(device_imei_packet)
+        device_id = b"".fromhex(device_id_packet)
+
+        # print(device_imei, device_id)
+        return device_imei, device_id
+   
+    def device_data_decoder(self, packet: str, print_bits: bool = False) -> dict:
+        ## Get the structure of the data packet
+        packet_structure = self.decode_packet_structure(packet)
+
+        ## Decode the data according to the protocol
+        information_bits = packet_structure['information_bits']
+        device_information_packets = {
+            'longitude' : information_bits[:8],
+            'latitude' : information_bits[8:16],
+            'timestamp' : information_bits[16:32],
+            'imei' : information_bits[32:48],
+            'satellites' : information_bits[48:50],
+            'state' : information_bits[50:52],
+            'batt_voltage' : information_bits[52:56],
+            'acceleration' : information_bits[56:]
         }
 
-        return split_dict
-        
-    def calc_crc(self, data):
+        if print_bits:
+            print(json.dumps(device_information_packets, indent=2))
+
+        ## Decode to decimal
+        device_information = {}
+        for k, v in device_information_packets.items():
+            if k == 'longitude' or k == 'latitude':
+                device_information[k] = struct.unpack('!f', bytes.fromhex(v))[0]
+            elif k == 'timestamp':
+                device_information[k] = struct.unpack('!Q', bytes.fromhex(v))[0]
+            elif k == 'satellites' or k == 'state':
+                device_information[k] = struct.unpack('!B', bytes.fromhex(v))[0]
+            elif k == 'batt_voltage' or k == 'acceleration':
+                device_information[k] = struct.unpack('!H', bytes.fromhex(v))[0]
+            else:
+                device_information[k] = int(v)
+
+        return device_information
+
+    def acknowledgement_packet_encoder(self, server_id: str, device_id: str) -> bytes:
+
+        packet_hex_string = b""
+
+        ## Start bit
+        packet_hex_string += b"7946"
+
+        ## Packet Lenght
+        packet_hex_string += b"ZZ"
+
+        ## Protocol Number
+        packet_hex_string += b"03"
+
+        ## Information bit
+        # Server ID
+        # packet_hex_string += binascii.hexlify(server_id.upper().encode('utf-8'))
+        # Device ID
+        packet_hex_string += binascii.hexlify(device_id.upper().encode('utf-8'))
+
+        ## Recalculate the Packet Lenght
+        info_packet = packet_hex_string[8:].decode('utf-8')
+        packet_hex_string = packet_hex_string.replace(b'ZZ', struct.pack('!B', int(len(info_packet)/2)).hex().upper().encode('utf-8'))
+        ## Error Check
+        packet_hex_string += self.calc_crc(info_packet).encode('utf-8')
+
+        ## Stop bit
+        packet_hex_string += b"6497"
+
+
+        return packet_hex_string.upper() 
+   
+    def calc_crc(self, data: str, padded: bool = False) -> str:
         """Calculates the CRC 16 error check value for the given data. Uses CRC 16 x25
 
         Args:
@@ -670,19 +768,72 @@ class KarimuDecoder:
             The CRC error check value.
             EXAMPLE: '8CDD'
         """
+        
+        ## Clean the packet
+        data = data.upper().strip().replace(' ', '')
+        
+        if padded:
+            v = hex(libscrc.x25(bytes.fromhex(data)))[2:].zfill(4).upper()
+            return ' '.join(v[i:i+2] for i in range(0, len(v), 2))
 
         return hex(libscrc.x25(bytes.fromhex(data)))[2:].zfill(4).upper()
+
+    def createDeviceDataPacket(self, longitude: float, latitude: float, timestamp: int, satellites: int, acceleration: int, state: int, battVoltage: int):
+      
+        packet_hex_string = b""
+
+        ## Start bit
+        packet_hex_string += b"eeee"
+
+        ## Packet Lenght
+        packet_hex_string += b"ZZ"
+
+        ## Protocol Number
+        packet_hex_string += b"02"
+
+        ## Information bit
+        # Longitude
+        packet_hex_string += struct.pack('!f', longitude).hex().upper().encode('utf-8')
+        # Latitude
+        packet_hex_string += struct.pack('!f', latitude).hex().upper().encode('utf-8')
+        # Timestamp
+        packet_hex_string += struct.pack('!Q', timestamp).hex().upper().encode('utf-8')
+        # Satelittes
+        packet_hex_string += struct.pack('!B', satellites).hex().upper().encode('utf-8')
+        # State
+        packet_hex_string += struct.pack('!B', state).hex().upper().encode('utf-8')
+        # Battery Voltage
+        packet_hex_string += struct.pack('!H', battVoltage).hex().upper().encode('utf-8')
+        # Acceleration
+        packet_hex_string += struct.pack('!H', acceleration).hex().upper().encode('utf-8')
+
+        ## Recalculate the Packet Lenght
+        info_packet = packet_hex_string[8:].decode('utf-8')
+        packet_hex_string = packet_hex_string.replace(b'ZZ', struct.pack('!B', int(len(info_packet)/2)).hex().upper().encode('utf-8'))
+        ## Error Check
+        packet_hex_string += self.calc_crc(info_packet).encode('utf-8')
+
+        ## Stop bit
+        packet_hex_string += b"aaaa"
+
+
+        return packet_hex_string.upper()
         
 if __name__ == '__main__':
+
+    decoder = CodecKT1Decoder()
+    x = decoder.decode_packet_structure("EEEE4001303836363236323033333930323130366742686D53624A6C6D49487552627667786652616A4A54725153476F5A6F5A714A5A4445504E5A48B14BAAAA")
+    print(x)
+        
+    #############################  Concox Tests  ######################################
     
-    
-    decoder = KarimuDecoder()
+    # decoder = ConcoxDecoder()
 
     # crc = decoder.status_decoder(b'78 78 08 13 4B 04 03 00 01 00 11 06 1F 0D 0A')
     # crc = decoder.decode_alarm_language('0002')
     # print(crc)
-    # print(decoder.login_decoder(b'eeee0a013132333435363738414243444546313233343536373839300ad1e7aaaa'))
-    print(decoder.calc_crc("0A013132333435363738414243444546313233343536373839300A"))
+    # print(decoder.decode_packet_format(b'78780B800900e94457585823000198B30D0A'))
+    # print(decoder.encode_command_to_device("DWXX#"))
     
     # s = "787805130011F9700D0A"
     # print(" ".join([s[i:i+2] for i in range(0, len(s), 2)]))
