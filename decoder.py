@@ -618,19 +618,13 @@ class ConcoxDecoder:
         return command_packet
 
 
-class KarimuDecoder:
-
-    def __init__(self) -> None:
-        pass
-
 class CodecKT1Decoder:
     
     def __init__(self) -> None:
         """
         CodecKT1 Decoder
         """
-   
-   
+
     def decode_packet_structure(self, packet: str, padded: bool = False, print_length: bool = False) -> dict:
       """Decode the structure of a packet according to the CodecKT1 protocol.
       The protocol is as follows:
@@ -822,8 +816,12 @@ class CodecKT1Decoder:
 if __name__ == '__main__':
 
     decoder = CodecKT1Decoder()
-    x = decoder.decode_packet_structure("EEEE4001303836363236323033333930323130366742686D53624A6C6D49487552627667786652616A4A54725153476F5A6F5A714A5A4445504E5A48B14BAAAA")
-    print(x)
+    print(
+        json.dumps(
+            decoder.decode_packet_structure("EEEE1602BFACC8154201D29D0000000064B1949F08662620339021060A010E1002003402AAAA"),
+            indent=2
+        )
+    )
         
     #############################  Concox Tests  ######################################
     
