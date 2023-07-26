@@ -237,6 +237,165 @@ String TCPComms::getImeiNumber() {
   }
 }
 
+int TCPComms::setCurrentTime() {
+
+  // Check if network time updating is disabled (CLTS mode is 0)
+  sim800->println("AT+CLTS?");
+  _readBuffer(200);
+  if (_buffer.indexOf(F("+CLTS: 0")) != -1) {
+    
+    // Set network time updating to enabled (CLTS mode to 1)
+    sim800->println("AT+CLTS=1;&W");
+    delay(100);
+    
+    // Restart the modem
+    sim800->println("AT+CFUN=1,1");
+    delay(4000); // Give some time for the modem to restart
+    
+    // Confirm whether the modem is in CLTS mode
+    sim800->println("AT+CLTS?");
+    _readBuffer(5000);
+    if (_buffer.indexOf(F("+CLTS: 1")) != -1) {
+      // Serial.println("CLTS mode activated.");
+      
+      // Get the current time
+      sim800->println("AT+CCLK?");
+      _readBuffer(2000);
+      if (_buffer.indexOf(F("CCLK:")) != -1) {
+        
+        // Extract and validate the year (yy)
+        String response = _buffer.substring(_buffer.indexOf(F("CCLK:")) + 7);
+        int year = response.substring(0, 2).toInt();
+        if (year >= 23) {
+          Serial.println("Current time: " + response);
+          return 201;
+        } else {
+          Serial.println("Invalid year.");
+          return 233;
+        }
+      } else {
+        // Serial.println("Failed to get current time.");
+        return 222;
+      }
+    } else {
+      // Serial.println("Failed to activate CLTS mode.");
+      return 211;
+    }
+  } else {
+    // Serial.println("CLTS mode is already activated or unknown response.");
+    return 200;
+  }
+}
+
+unsigned long TCPComms::getTimestamp() {
+  // Get the current time from the SIM800 module
+  sim800->println("AT+CCLK?");
+  _readBuffer(2000);
+
+  // Check if the response contains the expected format
+  String response = _buffer;
+  if (response.indexOf("+CCLK: \"") != -1 && response.indexOf("OK") != -1) {
+    response = response.substring(response.indexOf("+CCLK: \"") + 8, response.indexOf("OK") - 2);
+    response.trim();
+
+    // Extract the date and time components from the response
+    int year = response.substring(0, 2).toInt();
+    int month = response.substring(3, 5).toInt();
+    int day = response.substring(6, 8).toInt();
+
+    // Extracting time components
+    int hour = response.substring(9, 11).toInt();
+    int minute = response.substring(12, 14).toInt();
+    int second = response.substring(15, 17).toInt();
+
+    // Correcting for negative minute values
+    if (minute < 0) {
+      minute += 60;
+      hour--;
+    }
+
+    // Correcting for negative hour values
+    if (hour < 0) {
+      hour += 24;
+      day--;
+    }
+
+    // Correcting for negative day values
+    if (day <= 0) {
+      // Assume the previous month had 31 days (this could be improved for other cases)
+      day += 31;
+      month--;
+    }
+
+    // Correcting for negative month values
+    if (month <= 0) {
+      month += 12;
+      year--;
+    }
+
+    // Correcting for 2-digit year values
+    year += 2000;
+
+    // Print the extracted and adjusted time
+    Serial.print("Extracted Time: ");
+    Serial.print(year);
+    Serial.print("/");
+    if (month < 10) Serial.print("0");
+    Serial.print(month);
+    Serial.print("/");
+    if (day < 10) Serial.print("0");
+    Serial.print(day);
+    Serial.print(",");
+    if (hour < 10) Serial.print("0");
+    Serial.print(hour);
+    Serial.print(":");
+    if (minute < 10) Serial.print("0");
+    Serial.print(minute);
+    Serial.print(":");
+    if (second < 10) Serial.print("0");
+    Serial.println(second);
+
+    // Days per month in a non-leap year
+    const int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+    // Calculate total days from 1970 to the given year
+    unsigned long totalDays = 0;
+    for (int y = 1970; y < year; y++) {
+        totalDays += 365;
+        if ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)) {
+            // Leap year has an extra day
+            totalDays++;
+        }
+    }
+
+    // Calculate total days in the current year up to the given month
+    for (int m = 1; m < month; m++) {
+        totalDays += daysInMonth[m - 1];
+        if (m == 2 && ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))) {
+            // February in a leap year has 29 days
+            totalDays++;
+        }
+    }
+
+    // Add the day of the month
+    totalDays += day - 1;
+
+    // Calculate total seconds
+    unsigned long totalSeconds = totalDays * 86400UL + hour * 3600UL + minute * 60UL + second;
+
+    // Adjust for leap years in the current year
+    if ((month > 2) && ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))) {
+        totalSeconds += 86400UL; // Add one extra day for leap year
+    }
+
+    // Serial.println(totalSeconds);
+    return totalSeconds;
+
+  } else {
+    return 99; // Error code: Unexpected response format
+  }
+}
+
 void TCPComms::testVars() {
   Serial.println(tx_pin);
   Serial.println(rx_pin);

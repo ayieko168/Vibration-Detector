@@ -50,23 +50,33 @@ void setup() {
   Serial.print("IMEI Number set to: ");
   Serial.println(imei);
 
-  /* -------------- Connect to the Internet ----------------*/
-  int connectionStatus = -1;
-  int connectionRetries = 0;
-  while (connectionStatus != 200 && connectionStatus != 202){
-    connectionStatus = tcpcoms.connectInternet();
-    Serial.print("Internet Connection Status: ");
-    Serial.println(connectionStatus); 
-    delay(5000);
+  /* ------------- Set the datetime to current network datetime -------------*/
+  int timeSetState = tcpcoms.setCurrentTime();
+  Serial.print("Setting time to current datetime: ");
+  Serial.println(timeSetState);
 
-    connectionRetries ++;
-    if (connectionRetries >= 5){
-      Serial.println("Resetting the SIM800 and retrying in 10 Seconds...");
-      tcpcoms.resetSim800();
-      connectionRetries = 0;
-      delay(10000);
-    }
-  }
+  /* ------------- Get the current date ----------------*/
+  unsigned long currentTimeStamp = tcpcoms.getTimestamp();
+  Serial.print("Current Timestamp: ");
+  Serial.println(currentTimeStamp);
+
+  /* -------------- Connect to the Internet ----------------*/
+  // int connectionStatus = -1;
+  // int connectionRetries = 0;
+  // while (connectionStatus != 200 && connectionStatus != 202){
+  //   connectionStatus = tcpcoms.connectInternet();
+  //   Serial.print("Internet Connection Status: ");
+  //   Serial.println(connectionStatus); 
+  //   delay(5000);
+
+  //   connectionRetries ++;
+  //   if (connectionRetries >= 5){
+  //     Serial.println("Resetting the SIM800 and retrying in 10 Seconds...");
+  //     tcpcoms.resetSim800();
+  //     connectionRetries = 0;
+  //     delay(10000);
+  //   }
+  // }
   
 
 
@@ -114,14 +124,14 @@ void loop() {
   // Serial.println(serverResponse);
 
   /* --------------- Send the data packet -----------------*/
-  serverResponse = "";
-  String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
-  String sentErrorCheck = deviceDataPacketString.substring(68, 72);
-  serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
-  Serial.print("Recieved Error Check: ");
-  Serial.print(serverResponse);
-  Serial.print(" Sent Error Cech: ");
-  Serial.println(sentErrorCheck);
+  // serverResponse = "";
+  // String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
+  // String sentErrorCheck = deviceDataPacketString.substring(68, 72);
+  // serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
+  // Serial.print("Recieved Error Check: ");
+  // Serial.print(serverResponse);
+  // Serial.print(" Sent Error Cech: ");
+  // Serial.println(sentErrorCheck);
 
   // delay(5000);  // Wait X seconds before sending another packet.
 }

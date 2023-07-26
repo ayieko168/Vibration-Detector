@@ -26,6 +26,8 @@ class TCPComms {
 
     String getLocolIP();
     String getImeiNumber();
+    int setCurrentTime();
+    unsigned long getTimestamp();
     void testVars();
 };
 
