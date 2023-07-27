@@ -105,6 +105,13 @@ void loop() {
           Serial.print(F("- longitude: "));
           Serial.println(gps.location.lng(), 8);
 
+          // Break out of the Location Loop when a valip location is aquired.
+          Serial.println();
+          Serial.print("GPS Data Aquisition Retries: ");
+          Serial.println(dataAquisitionRetries);
+          dataAquisitionRetries = 0;
+          break;
+
         } else {
           longitude = 0;
           latitude = 0;
@@ -140,12 +147,6 @@ void loop() {
           satellites = UINT8_MAX;
           Serial.println(F("INVALID"));
         }
-
-        Serial.println();
-        Serial.print("GPS Data Aquisition Retries: ");
-        Serial.println(dataAquisitionRetries);
-        dataAquisitionRetries = 0;
-        break;
       }
     }
 
