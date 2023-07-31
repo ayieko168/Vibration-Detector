@@ -2,6 +2,8 @@ from fastapi import FastAPI, Request
 import uvicorn
 import requests
 import json
+import random
+import string
 
 app = FastAPI()
 state = 'valid'
@@ -30,6 +32,23 @@ async def set_state(request: Request):
 
     state = new_state
     return {"state": state}
+
+@app.post("/api/get_user/{id_number}")
+async def set_state(request: Request, id_number: str):
+    
+    # response = requests.request("GET", "https://randomuser.me/api/", headers={}, data={}).json()
+    
+    first_name = random.choices(string.ascii_uppercase, k=random.randint(3, 15))
+    middle_name = random.choices(string.ascii_uppercase, k=random.randint(3, 12))
+    last_name = random.choices(string.ascii_uppercase, k=random.randint(3, 10))
+    dob = f"{random.randint(1930, 2022)}-{random.randint(1, 12)}-{random.randint(1, 30)}"
+    area_of_birth = random.choices(string.ascii_uppercase, k=random.randint(10, 15))
+    sex = random.choice(['M', 'F'])
+    mother_name = random.choices(string.ascii_uppercase, k=random.randint(3, 15))
+    
+    response_string = f"{id_number}:NULL:{first_name}:{middle_name}:{last_name}:{dob}:{area_of_birth}:{sex}:{mother_name}:200:Successful"
+    
+    return response_string
 
 
 
