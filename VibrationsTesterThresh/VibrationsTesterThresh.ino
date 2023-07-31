@@ -112,6 +112,7 @@ void loop() {
       // Set state
       // state = LOW;
       previousMillis_i = currentMillis_i;
+      previousMillis_w = millis();
     }
   }
   // Check if OFF (To be implemented)
