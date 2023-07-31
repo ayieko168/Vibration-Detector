@@ -1,4 +1,6 @@
 #include <TinyGPS++.h>
+#include <Wire.h>
+#include <MPU6050.h>
 #include "CodecKT1.h"
 #include "TCPComms.h"
 
@@ -6,12 +8,23 @@ char* imei = "NULL0";
 String deviceLoginPacketString = "NULL";
 const int BOARD_RESET_PIN = 2;
 String serverResponse;
+int connectedToInterent;
 
 /* GPS Module Variables */
 const int GPSRXPin = 8, GPSTXPin = 7;
 const uint32_t GPSBaud = 9600;
 int dataAquisitionRetries = 0;
 
+/* Gyro Module Variables (MPU6050) */
+uint8_t MPU6050_GYRO_FS_250 = 0;
+uint8_t MPU6050_GYRO_FS_500 = 1;
+uint8_t MPU6050_GYRO_FS_1000 = 2;
+uint8_t MPU6050_GYRO_FS_2000 = 3;
+float previousReading = 0.0;
+float absoluteDisplasement = 0.0;
+float gyroscopeMagnitude = 0.0;
+
+/* Packet Variables */
 float longitude = -1.349856;
 float latitude = 32.455678;
 uint64_t timestamp = 1689359519;
@@ -20,12 +33,11 @@ uint16_t acceleration = 512;
 uint8_t state = 1;
 uint16_t battVoltage = 3600;
 
-int connectedToInterent;
-
 CodecKT1 codec;
 TCPComms tcpcoms;
 TinyGPSPlus gps;
 SoftwareSerial gpsSerial(GPSRXPin, GPSTXPin);
+MPU6050 mpu;
 
 
 void setup() {
@@ -90,6 +102,9 @@ void setup() {
 void loop() {
 
   /* ------------------ Extract the variable values from the sensors and gsm -----------------*/
+  // Vibration (Gyro) Sensor
+
+
   // GPS Sensor
   for (int gpsReadRuns = 0; gpsReadRuns < 500; gpsReadRuns++){  // Try reading 500 times and break immedietly the GPS send me some data
     if (gpsSerial.available() > 0) {
