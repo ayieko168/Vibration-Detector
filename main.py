@@ -38,13 +38,13 @@ async def set_state(request: Request, id_number: str):
     
     # response = requests.request("GET", "https://randomuser.me/api/", headers={}, data={}).json()
     
-    first_name = random.choices(string.ascii_uppercase, k=random.randint(3, 15))
-    middle_name = random.choices(string.ascii_uppercase, k=random.randint(3, 12))
-    last_name = random.choices(string.ascii_uppercase, k=random.randint(3, 10))
-    dob = f"{random.randint(1930, 2022)}-{random.randint(1, 12)}-{random.randint(1, 30)}"
-    area_of_birth = random.choices(string.ascii_uppercase, k=random.randint(10, 15))
+    first_name = "".join(random.choices(string.ascii_uppercase, k=random.randint(3, 15)))
+    middle_name = "".join(random.choices(string.ascii_uppercase, k=random.randint(3, 12)))
+    last_name = "".join(random.choices(string.ascii_uppercase, k=random.randint(3, 10)))
+    dob = f"{random.randint(1930, 2022)}-{random.randint(1, 12):02}-{random.randint(1, 30):02}"
+    area_of_birth = "".join(random.choices(string.ascii_uppercase, k=random.randint(10, 15)))
     sex = random.choice(['M', 'F'])
-    mother_name = random.choices(string.ascii_uppercase, k=random.randint(3, 15))
+    mother_name = "".join(random.choices(string.ascii_uppercase, k=random.randint(3, 15)))
     
     response_string = f"{id_number}:NULL:{first_name}:{middle_name}:{last_name}:{dob}:{area_of_birth}:{sex}:{mother_name}:200:Successful"
     
