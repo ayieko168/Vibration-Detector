@@ -59,7 +59,7 @@ void TCPComms::resetSim800() {
 int TCPComms::connectInternet() {
 
   // Step 1: Check if the SIM800 module is ready
-  sim800->println("AT");
+  sim800->println(F("AT"));
   _readBuffer(500); // Wait for the response
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", the module is not ready.
@@ -68,7 +68,7 @@ int TCPComms::connectInternet() {
   }
 
   // Step 2: Check if the SIM card is attached and registered to the network
-  sim800->println("AT+CGATT?");
+  sim800->println(F("AT+CGATT?"));
   _readBuffer(200);
   if ((_buffer.indexOf(F("+CGATT: 1"))) == -1) {
     // If the response does not contain "+CGATT: 1", the SIM card is not attached or not registered.
@@ -77,7 +77,7 @@ int TCPComms::connectInternet() {
   }
 
   // Step 3: Check internet connectivity
-  sim800->println("AT+CIPSTART=\"TCP\",\"8.8.8.8\",\"53\"");
+  sim800->println(F("AT+CIPSTART=\"TCP\",\"8.8.8.8\",\"53\""));
   _readBuffer(5000);
   if ((_buffer.indexOf(F("CONNECT OK"))) == -1) {
     // If the response does not contain "CONNECT OK", the TCP connection failed.
@@ -85,14 +85,14 @@ int TCPComms::connectInternet() {
     return 222; // Error code: 222 - Not connected to the internet
   }else{
     // Connection is OK. Close the TCP connection immediately since we only wanted to check connectivity
-    sim800->println("AT+CIPCLOSE");
+    sim800->println(F("AT+CIPCLOSE"));
     _readBuffer(500);
     return 202;
   }
 
 
   // Step 4: Set the Access Point Name (APN)
-  sim800->println("AT+CSTT=\"Safaricom\"");
+  sim800->println(F("AT+CSTT=\"Safaricom\""));
   _readBuffer(500);
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", setting the APN failed.
@@ -101,7 +101,7 @@ int TCPComms::connectInternet() {
   }
 
   // Step 5: Start GPRS (Connect to the internet)
-  sim800->println("AT+CIICR");
+  sim800->println(F("AT+CIICR"));
   _readBuffer(4000);
   if ((_buffer.indexOf(F("OK"))) == -1) {
     // If the response does not contain "OK", GPRS connection failed.
@@ -110,7 +110,7 @@ int TCPComms::connectInternet() {
   }
 
   // Step 6: Get Local IP
-  sim800->println("AT+CIFSR");
+  sim800->println(F("AT+CIFSR"));
   _readBuffer(200);
   if ((_buffer.indexOf(F("."))) == -1) {
     // If the response does not contain ".", getting the local IP failed.
@@ -127,22 +127,22 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   String response;
 
   // Check if TCP connection is already active
-  sim800->println("AT+CIPSTATUS");
+  sim800->println(F("AT+CIPSTATUS"));
   _readBuffer(500);
   bool tcpConnected = _buffer.indexOf(F("STATE: CONNECT OK")) != -1;
 
   if (!tcpConnected) {
     // TCP connection is not active, establish the connection
-    sim800->println("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\"");
+    sim800->println(F("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\""));
     _readBuffer(5000);
     if (_buffer.indexOf(F("CONNECT OK")) == -1) {
-      response = "Error: Failed to establish TCP connection";
+      response = F("Error: Failed to establish TCP connection");
       return response;
     }
   }
 
   // Sending data to the server
-  sim800->print("AT+CIPSEND=");
+  sim800->print(F("AT+CIPSEND="));
   sim800->println(payload.length());
   delay(100); // Wait for the ">"
   sim800->print(payload); // Send the payload
@@ -171,7 +171,7 @@ String TCPComms::sendDataWithResponse(const String& payload) {
 
   // Check if the server response has been fully received
   if (!responseStarted) {
-    response = "Error: Server response not fully received or timeout";
+    response = F("Error: Server response not fully received or timeout");
   } else {
     // Remove leading newline characters, if any
     _buffer.trim();
@@ -189,37 +189,33 @@ String TCPComms::sendDataWithResponse(const String& payload) {
 
   // Close the TCP connection if it was not already open
   if (!tcpConnected) {
-    sim800->println("AT+CIPCLOSE");
+    sim800->println(F("AT+CIPCLOSE"));
     _readBuffer(200);
   }
 
   return response;
 }
 
-bool TCPComms::sendDeviceData() {
-  
-}
-
 String TCPComms::getLocolIP() {
   // Get Local IP
-  sim800->println("AT+CIFSR");
+  sim800->println(F("AT+CIFSR"));
   _readBuffer(400);
   if ((_buffer.indexOf(F("."))) != -1) {
 
     // Serial.println("LOCAL IP: ");
     // Serial.println(_buffer);
-    String ret_buff = _buffer.substring(String("AT+CIFSR").length());
+    String ret_buff = _buffer.substring(String(F("AT+CIFSR")).length());
     ret_buff.trim();
     return ret_buff;  // Success
 
   } else {
-    return "NONE";
+    return F("NONE");
   }
 }
 
 String TCPComms::getImeiNumber() {
   // Get IMEI Number
-  sim800->println("AT+GSN");
+  sim800->println(F("AT+GSN"));
   _readBuffer(400);
   if ((_buffer.indexOf(F("OK"))) != -1) {
     int imeiStart = _buffer.indexOf('\n') + 1; // Find the start of the IMEI number
@@ -230,36 +226,36 @@ String TCPComms::getImeiNumber() {
       imei = "0" + imei; // Pad the IMEI to 16 characters with leading zero
       return imei;
     } else {
-      return "NONE2"; // Invalid IMEI length
+      return F("NONE2"); // Invalid IMEI length
     }
   } else {
-    return "NONE1"; // Error in AT command response
+    return F("NONE1"); // Error in AT command response
   }
 }
 
 int TCPComms::setCurrentTime() {
 
   // Check if network time updating is disabled (CLTS mode is 0)
-  sim800->println("AT+CLTS?");
+  sim800->println(F("AT+CLTS?"));
   _readBuffer(200);
   if (_buffer.indexOf(F("+CLTS: 0")) != -1) {
     
     // Set network time updating to enabled (CLTS mode to 1)
-    sim800->println("AT+CLTS=1;&W");
+    sim800->println(F("AT+CLTS=1;&W"));
     delay(100);
     
     // Restart the modem
-    sim800->println("AT+CFUN=1,1");
+    sim800->println(F("AT+CFUN=1,1"));
     delay(4000); // Give some time for the modem to restart
     
     // Confirm whether the modem is in CLTS mode
-    sim800->println("AT+CLTS?");
+    sim800->println(F("AT+CLTS?"));
     _readBuffer(5000);
     if (_buffer.indexOf(F("+CLTS: 1")) != -1) {
       // Serial.println("CLTS mode activated.");
       
       // Get the current time
-      sim800->println("AT+CCLK?");
+      sim800->println(F("AT+CCLK?"));
       _readBuffer(2000);
       if (_buffer.indexOf(F("CCLK:")) != -1) {
         
@@ -270,7 +266,7 @@ int TCPComms::setCurrentTime() {
           Serial.println("Current time: " + response);
           return 201;
         } else {
-          Serial.println("Invalid year.");
+          Serial.println(F("Invalid year."));
           return 233;
         }
       } else {
@@ -288,14 +284,17 @@ int TCPComms::setCurrentTime() {
 }
 
 unsigned long TCPComms::getTimestamp() {
+
+  String response = "";
   // Get the current time from the SIM800 module
-  sim800->println("AT+CCLK?");
-  _readBuffer(2000);
+  sim800->println(F("AT+CCLK?"));
+  _readBuffer(1000);
 
   // Check if the response contains the expected format
-  String response = _buffer;
-  if (response.indexOf("+CCLK: \"") != -1 && response.indexOf("OK") != -1) {
-    response = response.substring(response.indexOf("+CCLK: \"") + 8, response.indexOf("OK") - 2);
+  // Serial.println(_buffer);
+  response += _buffer;
+  if (response.indexOf(F("+CCLK: \"")) != -1 && response.indexOf(F("OK")) != -1) {
+    response = response.substring(response.indexOf(F("+CCLK: \"")) + 8, response.indexOf(F("OK")) - 2);
     response.trim();
 
     // Extract the date and time components from the response
@@ -337,21 +336,21 @@ unsigned long TCPComms::getTimestamp() {
     year += 2000;
 
     // Print the extracted and adjusted time
-    Serial.print("Extracted Time: ");
+    Serial.print(F("Extracted Time: "));
     Serial.print(year);
-    Serial.print("/");
+    Serial.print(F("/"));
     if (month < 10) Serial.print("0");
     Serial.print(month);
-    Serial.print("/");
+    Serial.print(F("/"));
     if (day < 10) Serial.print("0");
     Serial.print(day);
-    Serial.print(",");
+    Serial.print(F(","));
     if (hour < 10) Serial.print("0");
     Serial.print(hour);
-    Serial.print(":");
+    Serial.print(F(":"));
     if (minute < 10) Serial.print("0");
     Serial.print(minute);
-    Serial.print(":");
+    Serial.print(F(":"));
     if (second < 10) Serial.print("0");
     Serial.println(second);
 
@@ -392,24 +391,32 @@ unsigned long TCPComms::getTimestamp() {
     return totalSeconds;
 
   } else {
+    Serial.println(F("Error: Response From CLK CMD: "));
+    Serial.println(response);
     return 99; // Error code: Unexpected response format
   }
 }
 
-void TCPComms::testVars() {
-  Serial.println(tx_pin);
-  Serial.println(rx_pin);
-  Serial.println(reset_pin);
-
-  sim800->println("AT");
-  _readBuffer();
-
-  Serial.println(_buffer);
-}
-
 void TCPComms::_readBuffer(uint32_t timeout = 5000) {
   _buffer = "";
-  uint64_t timeOld = millis();
-  while (!sim800->available() && !(millis() > timeOld + timeout)) { ; }
-  if (sim800->available()) { _buffer = sim800->readString(); }
+
+  uint32_t start_time = millis();
+  while (millis() - start_time < timeout) {
+    if (sim800->available()) {
+      char c = sim800->read();
+      _buffer += c;
+    }
+  }
 }
+
+// void TCPComms::_readBuffer(uint32_t timeout = 5000) {
+// // Reads the serial buffer only when there is data flowing, else exit.
+//   _buffer = "";
+
+//   uint32_t start_time = millis();
+//   while ((millis() - start_time < timeout) && sim800->available()) {
+//     char c = sim800->read();
+//     _buffer += c;
+//   }
+// }
+

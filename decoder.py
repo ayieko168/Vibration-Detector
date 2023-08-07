@@ -815,7 +815,7 @@ class CodecKT1Decoder:
         
 if __name__ == '__main__':
     
-    packet = "EEEE160242134974BFA36CAA0000000064B1949F08662620339021060C010E100000EF56AAAA"
+    packet = "EEEE160142134936BFA36EAB0000000064B1949F0866262033902106FF0300000000AAAA"
 
     #############################  CodecKT1 Tests  ######################################
 
@@ -829,7 +829,10 @@ if __name__ == '__main__':
     
     print(
         json.dumps(
-            decoder.device_data_decoder(packet),
+            decoder.device_data_decoder(
+                packet,
+                print_bits=True
+            ),
             indent=2
         )
     )

@@ -4,7 +4,7 @@
 #include "CodecKT1.h"
 #include "TCPComms.h"
 
-char* imei = "NULL0";
+String imei = "NONE0";
 String deviceLoginPacketString = "NULL";
 const int BOARD_RESET_PIN = 2;
 String serverResponse;
@@ -14,6 +14,8 @@ int connectedToInterent;
 const int GPSRXPin = 8, GPSTXPin = 7;
 const uint32_t GPSBaud = 9600;
 int dataAquisitionRetries = 0;
+bool foundValidData = false;
+
 
 /* Gyro Module Variables (MPU6050) */
 uint8_t MPU6050_GYRO_FS_250 = 0;
@@ -69,40 +71,57 @@ void setup() {
   }
 
   /* --------- Set the IMEI Number from the device ----------*/
-  String newImeiString = tcpcoms.getImeiNumber();
-  imei = strdup(newImeiString.c_str());
-  Serial.print("IMEI Number set to: ");
-  Serial.println(imei);
+  while (imei.indexOf("NONE") != -1){
+    imei = tcpcoms.getImeiNumber();
+    Serial.print("IMEI Number set to: ");
+    Serial.println(imei);
+    delay(100);
+  }
 
   /* ------------- Set the datetime to current network datetime -------------*/
-  int timeSetState = tcpcoms.setCurrentTime();
-  Serial.print("Setting time to current datetime: ");
-  Serial.println(timeSetState);
+  int timeSetState = 999;
+  while (timeSetState != 200 && timeSetState != 201){
+    timeSetState = tcpcoms.setCurrentTime();
+    Serial.print("Setting time to current datetime: ");
+    Serial.println(timeSetState);
+  }
 
   /* ------------- Get the current date ----------------*/
-  unsigned long currentTimeStamp = tcpcoms.getTimestamp();
-  Serial.print("Current Timestamp: ");
-  Serial.println(currentTimeStamp);
+  unsigned long currentTimeStamp = 99;
+  while (currentTimeStamp == 99) {
+    currentTimeStamp = tcpcoms.getTimestamp();
+    Serial.print("Current Timestamp: ");
+    Serial.println(currentTimeStamp);
+  }
 
-  /* ----------------- GPS Sensor ------------------*/
+  /* ----------------- GYRO Sensor ------------------*/
+  // Initialize the MPU6050 sensor
+  Wire.begin();
+  mpu.initialize();
+
+  // Set gyroscope full-scale range (FSR)
+  // Options: MPU6050_GYRO_FS_250, MPU6050_GYRO_FS_500, MPU6050_GYRO_FS_1000, MPU6050_GYRO_FS_2000 (Higher the value the more sensitive the Gyro)
+  mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_2000);
+  Serial.print("GYRO Full range: ");
+  Serial.println(mpu.getFullScaleGyroRange());
 
   /* -------------- Connect to the Internet ----------------*/
-  // int connectionStatus = -1;
-  // int connectionRetries = 0;
-  // while (connectionStatus != 200 && connectionStatus != 202){
-  //   connectionStatus = tcpcoms.connectInternet();
-  //   Serial.print("Internet Connection Status: ");
-  //   Serial.println(connectionStatus); 
-  //   delay(5000);
+  int connectionStatus = -1;
+  int connectionRetries = 0;
+  while (connectionStatus != 200 && connectionStatus != 202){
+    connectionStatus = tcpcoms.connectInternet();
+    Serial.print("Internet Connection Status: ");
+    Serial.println(connectionStatus); 
+    delay(5000);
 
-  //   connectionRetries ++;
-  //   if (connectionRetries >= 5){
-  //     Serial.println("Resetting the SIM800 and retrying in 10 Seconds...");
-  //     tcpcoms.resetSim800();
-  //     connectionRetries = 0;
-  //     delay(10000);
-  //   }
-  // }
+    connectionRetries ++;
+    if (connectionRetries >= 5){
+      Serial.println("Resetting the SIM800 and retrying in 10 Seconds...");
+      tcpcoms.resetSim800();
+      connectionRetries = 0;
+      delay(10000);
+    }
+  }
 
   // GPS Serial
   gpsSerial.begin(GPSBaud);
@@ -112,7 +131,7 @@ void setup() {
 void loop() {
 
   /* ------------------ Extract the variable values from the sensors and gsm -----------------*/
-  // Read gyroscope data
+  // Read gyroscope data for a second
   int16_t gx, gy, gz;
   mpu.getRotation(&gx, &gy, &gz);
 
@@ -130,30 +149,39 @@ void loop() {
   float absDisp2 = absoluteDisplasement * absoluteDisplasement;
 
   /* Logic to check if state has changed */
-  if (absDisp2 > WORKING_THRESHOLD_DISP) {
-    // In Working state
-    currentMillis_w = millis();
-    if (abs(currentMillis_w - previousMillis_w) > WORKING_THRESHOLD_PERIOD) {
-      Serial.print(abs(currentMillis_w - previousMillis_w));
-      Serial.println(" WORKING STATE! ");
-      // Set state
-      state = 2;
-      previousMillis_w = currentMillis_w;
-    }
-    // Reset the idle state timer
-    previousMillis_i = millis();
-  } else if (absDisp2 > IDLE_THRESHOLD_DISP && absDisp2 < WORKING_THRESHOLD_DISP) {
-    // In Idle state
-    currentMillis_i = millis();
-    if (abs(currentMillis_i - previousMillis_i) > IDLE_THRESHOLD_PERIOD) {
-      Serial.print(abs(currentMillis_i - previousMillis_i));
-      Serial.println(" IDLE STATE! ");
-      // Set state
-      state = 1;
-      previousMillis_i = currentMillis_i;
-      previousMillis_w = millis();
-    }
-  }
+  // if (absDisp2 > WORKING_THRESHOLD_DISP) {
+  //   // In Working state
+  //   currentMillis_w = millis();
+  //   if (abs(currentMillis_w - previousMillis_w) > WORKING_THRESHOLD_PERIOD) {
+  //     Serial.print(abs(currentMillis_w - previousMillis_w));
+  //     Serial.println(" WORKING STATE! ");
+  //     // Set state
+  //     state = 2;
+  //     previousMillis_w = currentMillis_w;
+  //   }
+  //   // Reset the idle state timer
+  //   previousMillis_i = millis();
+  // } else if (absDisp2 > IDLE_THRESHOLD_DISP && absDisp2 < WORKING_THRESHOLD_DISP) {
+  //   // In Idle state
+  //   currentMillis_i = millis();
+  //   if (abs(currentMillis_i - previousMillis_i) > IDLE_THRESHOLD_PERIOD) {
+  //     Serial.print(abs(currentMillis_i - previousMillis_i));
+  //     Serial.println(" IDLE STATE! ");
+  //     // Set state
+  //     state = 1;
+  //     previousMillis_i = currentMillis_i;
+  //     previousMillis_w = millis();
+  //   }
+  // } else {
+  //   Serial.println(" OFF STATE! ");
+  //     // Set state
+  //   state = 3;
+
+  //   currentMillis_w = 0;
+  //   previousMillis_w = 0;
+  //   currentMillis_i = 0;
+  //   previousMillis_i = 0;
+  // }
 
   // Set current reading to the previous value for the next iteration.
   previousReading = gyroscopeMagnitude;
@@ -167,19 +195,16 @@ void loop() {
 
         if (gps.location.isValid()) {
           latitude = static_cast<float>(gps.location.lat());
-          Serial.print(F("- latitude: "));
-          Serial.println(gps.location.lat(), 8);
+          // Serial.print(F("- latitude: "));
+          // Serial.println(gps.location.lat(), 8);
 
           longitude = static_cast<float>(gps.location.lng());
-          Serial.print(F("- longitude: "));
-          Serial.println(gps.location.lng(), 8);
+          // Serial.print(F("- longitude: "));
+          // Serial.println(gps.location.lng(), 8);
 
           // Break out of the Location Loop when a valip location is aquired.
-          Serial.println();
-          Serial.print("GPS Data Aquisition Retries: ");
-          Serial.println(dataAquisitionRetries);
-          dataAquisitionRetries = 0;
-          break;
+          foundValidData = true;
+          // break;
 
         } else {
           longitude = 0;
@@ -217,6 +242,15 @@ void loop() {
           Serial.println(F("INVALID"));
         }
       }
+
+      if (foundValidData){
+        Serial.println();
+        Serial.print("GPS Data Aquisition Retries: ");
+        Serial.println(dataAquisitionRetries);
+        dataAquisitionRetries = 0;
+        foundValidData = false;
+        break;
+      }
     }
 
     // if (millis() > 5000 && gps.charsProcessed() < 10){
@@ -231,15 +265,23 @@ void loop() {
   /* --------------- Send the data packet -----------------*/
   serverResponse = "";
   String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
-  String sentErrorCheck = deviceDataPacketString.substring(68, 72);
-  serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
+  if (deviceDataPacketString.length() != 72){
+    Serial.print("ERROR: Device Data Packet String: ");
+    Serial.println(deviceDataPacketString);
+    delay(5000);
+    Serial.println("==================================");
+    return;
+  }
+  // String sentErrorCheck = deviceDataPacketString.substring(68, 72);
+  // serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
+  Serial.print("Device Data Packet String: ");
   Serial.println(deviceDataPacketString);
-  Serial.print("Recieved Error Check: ");
-  Serial.print(serverResponse);
-  Serial.print(" Sent Error Cech: ");
-  Serial.println(sentErrorCheck);
+  // Serial.print("Recieved Error Check: ");
+  // Serial.print(serverResponse);
+  // Serial.print(" Sent Error Cech: ");
+  // Serial.println(sentErrorCheck);
 
-  // delay(5000);  // Wait X seconds before sending another packet.
+  delay(5000);  // Wait X seconds before sending another packet.
   Serial.println("==================================");
 }
 
