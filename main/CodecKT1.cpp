@@ -16,6 +16,10 @@ uint16_t CodecKT1::calculateCRC16(uint8_t* data, size_t dataSize) {
   }
 
   crc ^= 0xFFFF;  // Bitwise XOR with 0xFFFF
+
+  Serial.print("Check Sum Data #1: ");
+  Serial.println(String(crc));
+
   return crc;
 }
 
@@ -89,18 +93,19 @@ String CodecKT1::createDeviceDataPacket(const String imei, float longitude, floa
   // Serial.println(hexAcceleration);
 
   // Calculate Checksum
-  String info_packet = packet_hex_string.substring(8);
-  uint8_t checksumData[info_packet.length() / 2];
-  for (size_t i = 0; i < info_packet.length(); i += 2) {
-    checksumData[i / 2] = (uint8_t)strtol(info_packet.substring(i, i + 2).c_str(), NULL, 16);
-  }
-  uint16_t crc = calculateCRC16(checksumData, sizeof(checksumData));
+  // String info_packet = packet_hex_string.substring(8);
+  // size_t dataSize = info_packet.length() / 2;
+  // uint8_t data[dataSize];
+  // for (size_t i = 0; i < dataSize; i++) {
+  //   sscanf(info_packet.substring(i * 2, i * 2 + 2).c_str(), "%02X", &data[i]);
+  // }
+  
+  uint16_t crc = 0; //calculateCRC16(data, dataSize);
   char crcHex[5];
   snprintf(crcHex, sizeof(crcHex), "%04X", crc);
   packet_hex_string += crcHex;
-  // Serial.println(checksumData);
-  // Serial.println(crcHex);
-
+  Serial.print("checksumData: ");
+  Serial.println(String(crcHex));
 
   // Stop bit
   packet_hex_string += "AAAA";

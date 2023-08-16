@@ -11,7 +11,7 @@ String serverResponse;
 int connectedToInterent;
 
 /* GPS Module Variables */
-const int GPSRXPin = 8, GPSTXPin = 7;
+const int GPSRXPin = 6, GPSTXPin = 5;
 const uint32_t GPSBaud = 9600;
 int dataAquisitionRetries = 0;
 bool foundValidData = false;
@@ -195,12 +195,12 @@ void loop() {
 
         if (gps.location.isValid()) {
           latitude = static_cast<float>(gps.location.lat());
-          // Serial.print(F("- latitude: "));
-          // Serial.println(gps.location.lat(), 8);
+          Serial.print(F("- latitude: "));
+          Serial.println(gps.location.lat(), 8);
 
           longitude = static_cast<float>(gps.location.lng());
-          // Serial.print(F("- longitude: "));
-          // Serial.println(gps.location.lng(), 8);
+          Serial.print(F("- longitude: "));
+          Serial.println(gps.location.lng(), 8);
 
           // Break out of the Location Loop when a valip location is aquired.
           foundValidData = true;
@@ -266,11 +266,13 @@ void loop() {
   serverResponse = "";
   String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
   if (deviceDataPacketString.length() != 72){
-    Serial.print("ERROR: Device Data Packet String: ");
+    Serial.print("Device Data Packet String: ");
     Serial.println(deviceDataPacketString);
-    delay(5000);
+
     Serial.println("==================================");
+    delay(5000);
     return;
+    
   }
   // String sentErrorCheck = deviceDataPacketString.substring(68, 72);
   // serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
@@ -281,8 +283,8 @@ void loop() {
   // Serial.print(" Sent Error Cech: ");
   // Serial.println(sentErrorCheck);
 
-  delay(5000);  // Wait X seconds before sending another packet.
   Serial.println("==================================");
+  delay(5000);  // Wait X seconds before sending another packet.
 }
 
 

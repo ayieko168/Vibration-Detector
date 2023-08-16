@@ -812,10 +812,13 @@ class CodecKT1Decoder:
 
 
         return packet_hex_string.upper()
-        
+
+
+
+
 if __name__ == '__main__':
     
-    packet = "EEEE160142134936BFA36EAB0000000064B1949F0866262033902106FF0300000000AAAA"
+    packet = "EEEE1601421321EABFA552530000000064B1949F086471303026844808000E1000000000AAAA"
 
     #############################  CodecKT1 Tests  ######################################
 
@@ -836,7 +839,8 @@ if __name__ == '__main__':
             indent=2
         )
     )
-        
+    
+    print(decoder.calc_crc(decoder.decode_packet_structure(packet)['information_bits']))    
     #############################  Concox Tests  ######################################
     
     # decoder = ConcoxDecoder()

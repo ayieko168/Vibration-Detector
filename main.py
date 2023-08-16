@@ -5,7 +5,7 @@ import json
 
 app = FastAPI()
 state = 'valid'
-
+ 
 @app.get("/")
 def read_root():
     return {"state": "Working"}
