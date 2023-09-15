@@ -59,6 +59,7 @@ class ClientThread(Thread):
                 print(f"[+] Socket Error: {err}")
                 
         else:
+            print("DISCONNECTED")
             self.log('Socket is null')
 
 
