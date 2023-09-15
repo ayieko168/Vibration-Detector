@@ -13,7 +13,7 @@ import requests
 # Global Variables
 host = '0.0.0.0'
 port = 6500
-url = "http://test.localhost/iot/v1/sensors"
+url = "http://aws-demo.razorinformatics.co.ke/iot/v1/sensors"
 headers = {
   'Accept': 'application/json'
 }
