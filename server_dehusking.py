@@ -61,7 +61,7 @@ class ClientThread(Thread):
                         print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake. from IMEI: {imei}")
                         
                         # Achknowledge login and send responce to device
-                        response_packet = decoder.calc_crc(decoder.packet_structure['information_bits'])
+                        response_packet = decoder.calc_crc(packet_structure['information_bits'])
                         response_packet += b"\n\r"
                         # self.conn.send(response_packet)
                         self.conn.send(f"FROM SERVER!!\n\r".encode('utf-8'))
@@ -86,7 +86,6 @@ class ClientThread(Thread):
                     print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}]: Found a INVALID packet, Exiting.")
                     self.conn.close()
 
-    
             except socket.error as err:
                 print(f"[SERVER] [ERROR] [{self.addr[0]}] [{datetime.now()}] Socket Error: {err}")
                 self.conn.close()
