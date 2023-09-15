@@ -8,12 +8,15 @@ from pprint import pprint
 import json
 from datetime import datetime
 from decoder import CodecKT1Decoder
+import requests
 
 # Global Variables
 host = '0.0.0.0'
 port = 6500
-
-
+url = "http://test.localhost/iot/v1/sensors"
+headers = {
+  'Accept': 'application/json'
+}
 
 
 class ClientThread(Thread):
@@ -59,7 +62,7 @@ class ClientThread(Thread):
                         imei = devide_data.get('imei')
                         print(json.dumps(devide_data, indent=2))
                         
-                        print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake. from IMEI: {imei}")
+                        print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}] Protocol Number: {packet_structure.get('protocol_number')} from IMEI: {imei}")
                         
                         # Achknowledge login and send responce to device
                         response_packet = str(decoder.calc_crc(packet_structure['information_bits'])).encode('utf-8')
@@ -70,18 +73,15 @@ class ClientThread(Thread):
                         
                         # Save the imei number
                         self.imei = imei
-                    
-                    elif packet_structure.get('protocol_number') == '02':
                         
-                        device_data = decoder.device_data_decoder(received)
+                        # Send the data to server
+                        response = requests.request("POST", url, headers=headers, data=devide_data)
+                        while not response.ok:
+                            print(f'[WARNING] [{self.addr[0]}] [{datetime.now()}]: failed to send the data to server CODE: {response.status_code}, trying again..')
+                            response = requests.request("POST", url, headers=headers, data=devide_data)
+                            time.sleep(2)
                         
-                        print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}] [PROTOCOL NUMBER = {packet_structure.get('protocol_number')}]: Is a login handshake. from IMEI: {self.imei}")
-                        print(f"[SERVER] [{self.addr[0]}] [{datetime.now()}] Device data: \n{json.dumps(device_data, indent=2)}")
-                        
-                        # Achknowledge login and send responce to device
-                        response_packet = f"{packet_structure.get('error_ckeck')}\n\r".encode('utf-8')
-                        self.conn.send(response_packet)
-                        print(f'[DEBUG] [{self.addr[0]}] [{datetime.now()}]: Sent response: {response_packet}')
+                        print(f'[DEBUG] [{self.addr[0]}] [{datetime.now()}]: Successfully sent the data packet.')
                     
                 else:
                     print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}]: Found a INVALID packet, Exiting.")
