@@ -60,7 +60,7 @@ void setup() {
   /* ------------- Initialize the serial ports ---------------- */
   // The USB serial
   Serial.begin(9600);
-
+  
   // The SIM8000 Serial
   bool tcpcoms_started = false;
   while (!tcpcoms_started){
@@ -70,10 +70,13 @@ void setup() {
     delay(100);
   }
 
+  // Reset the SIM800
+  tcpcoms.resetSim800();
+
   /* --------- Set the IMEI Number from the device ----------*/
   while (imei.indexOf("NONE") != -1){
     imei = tcpcoms.getImeiNumber();
-    Serial.print("IMEI Number: ");
+    Serial.print(F("IMEI Number: "));
     Serial.println(imei);
     delay(100);
   }
@@ -82,7 +85,7 @@ void setup() {
   int timeSetState = 999;
   while (timeSetState != 200 && timeSetState != 201){
     timeSetState = tcpcoms.setCurrentTime();
-    Serial.print("Setting time: ");
+    Serial.print(F("Setting time: "));
     Serial.println(timeSetState);
   }
 
@@ -90,7 +93,7 @@ void setup() {
   unsigned long currentTimeStamp = 99;
   while (currentTimeStamp == 99) {
     currentTimeStamp = tcpcoms.getTimestamp();
-    Serial.print("Current Timestamp: ");
+    Serial.print(F("Current Timestamp: "));
     Serial.println(currentTimeStamp);
   }
 
@@ -102,7 +105,7 @@ void setup() {
   // Set gyroscope full-scale range (FSR)
   // Options: MPU6050_GYRO_FS_250, MPU6050_GYRO_FS_500, MPU6050_GYRO_FS_1000, MPU6050_GYRO_FS_2000 (Higher the value the more sensitive the Gyro)
   mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_2000);
-  Serial.print("GYRO Full range: ");
+  Serial.print(F("GYRO Full range: "));
   Serial.println(mpu.getFullScaleGyroRange());
 
   /* -------------- Connect to the Internet ----------------*/
@@ -110,7 +113,7 @@ void setup() {
   int connectionRetries = 0;
   while (connectionStatus != 200 && connectionStatus != 202){
     connectionStatus = tcpcoms.connectInternet();
-    Serial.print("Internet Connection: ");
+    Serial.print(F("Internet Connection: "));
     Serial.println(connectionStatus); 
     delay(10000);
 
@@ -271,7 +274,7 @@ void loop() {
     Serial.print("IDDPS: ");
     Serial.println(deviceDataPacketString);
     // Serial.println(deviceDataPacketString.length());
-    delay(10);
+    delay(100);
   }
 
   String sentErrorCheck = deviceDataPacketString.substring(68, 72);

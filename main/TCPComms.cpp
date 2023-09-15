@@ -78,7 +78,7 @@ int TCPComms::connectInternet() {
 
   // Step 3: Check internet connectivity
   sim800->println(F("AT+CIPSTART=\"TCP\",\"8.8.8.8\",\"53\""));
-  _readBuffer(5000);
+  _readBuffer(10000);
   if ((_buffer.indexOf(F("CONNECT OK"))) == -1) {
     // If the response does not contain "CONNECT OK", the TCP connection failed.
     // Serial.println(_buffer);
@@ -134,12 +134,19 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   if (!tcpConnected) {
     // TCP connection is not active, establish new connection
     sim800->println(F("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\""));
-    _readBuffer(5000);
-    if (_buffer.indexOf(F("CONNECT OK")) == -1) {
-      // Serial.println(_buffer);
-      response = F("Error: Failed TCP connect");
-      return response;
-    }
+    delay(2000);
+    // _readBuffer(10000);
+    // Serial.println(_buffer);
+    // if (_buffer.indexOf(F("CONNECT OK")) == -1) {
+    //   response = F("Error: Failed TCP connect");
+
+    //   // Close the TCP connection if it was not already open
+    //   if (!tcpConnected) {
+    //     sim800->println(F("AT+CIPCLOSE"));
+    //     _readBuffer(200);
+    //   }
+    //   return response;
+    // }
   }
 
   // Sending data to the server
@@ -147,6 +154,7 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   sim800->println(payload.length());
   delay(100); // Wait for the ">"
   sim800->print(payload); // Send the payload
+  delay(100);
   sim800->write(26); // Send Ctrl+Z (ASCII code 26)
 
   // Wait for the response from the server
@@ -189,10 +197,8 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   }
 
   // Close the TCP connection if it was not already open
-  if (!tcpConnected) {
-    sim800->println(F("AT+CIPCLOSE"));
-    _readBuffer(200);
-  }
+  sim800->println(F("AT+CIPCLOSE"));
+  _readBuffer(200);
 
   return response;
 }
@@ -408,6 +414,7 @@ unsigned long TCPComms::getTimestamp() {
 
 void TCPComms::_readBuffer(uint32_t timeout = 5000) {
   _buffer = "";
+  _buffer.reserve(20);
 
   uint32_t start_time = millis();
   while (millis() - start_time < timeout) {
