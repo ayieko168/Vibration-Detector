@@ -61,10 +61,10 @@ class ClientThread(Thread):
                         print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake. from IMEI: {imei}")
                         
                         # Achknowledge login and send responce to device
-                        response_packet = decoder.calc_crc(packet_structure['information_bits'])
+                        response_packet = str(decoder.calc_crc(packet_structure['information_bits'])).encode('utf-8')
                         response_packet += b"\n\r"
-                        # self.conn.send(response_packet)
-                        self.conn.send(f"FROM SERVER!!\n\r".encode('utf-8'))
+                        self.conn.send(response_packet)
+                        # self.conn.send(f"FROM SERVER!!\n\r".encode('utf-8'))
                         print(f'[DEBUG] [{self.addr[0]}] [{datetime.now()}]: Sent response: {response_packet}')
                         
                         # Save the imei number
