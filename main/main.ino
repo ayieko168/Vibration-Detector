@@ -51,6 +51,7 @@ TinyGPSPlus gps;
 SoftwareSerial gpsSerial(GPSRXPin, GPSTXPin);
 MPU6050 mpu;
 
+void (*resetFunc) (void) = 0;
 
 void setup() {
 
@@ -147,11 +148,11 @@ void loop() {
     return;
   }
 
-  /* Calculate absolute displacement */
+  /* ============ Calculate absolute displacement ============ */
   absoluteDisplasement = abs(previousReading - gyroscopeMagnitude);
   float absDisp2 = absoluteDisplasement * absoluteDisplasement;
 
-  /* Logic to check if state has changed */
+  /* ============  Logic to check if state has changed ============ */
   if (absDisp2 > WORKING_THRESHOLD_DISP) {
     // In Working state
     currentMillis_w = millis();
@@ -263,18 +264,21 @@ void loop() {
     dataAquisitionRetries ++;
   }
 
-  // 
-
   /* --------------- Send the data packet -----------------*/
   serverResponse = "";
   String deviceDataPacketString = "";
-  // deviceDataPacketString.reserve(70);
+  int packet_error_counter = 0;
   while (deviceDataPacketString.length() < 72) {
+    packet_error_counter ++;
     deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
     Serial.print("IDDPS: ");
     Serial.println(deviceDataPacketString);
-    // Serial.println(deviceDataPacketString.length());
     delay(100);
+
+    if (packet_error_counter > 20){
+      //Reset the arduino after 20 failed packet creations.
+      resetFunc();
+    }
   }
 
   String sentErrorCheck = deviceDataPacketString.substring(68, 72);

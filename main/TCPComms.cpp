@@ -158,48 +158,51 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   sim800->write(26); // Send Ctrl+Z (ASCII code 26)
 
   // Wait for the response from the server
-  unsigned long timeout = millis() + 5000; // Set a timeout of 5 seconds
-  _buffer = ""; // Clear the buffer
+  _readBuffer(1000);
 
-  bool responseStarted = false;
-  while (timeout > millis()) {
-    if (sim800->available()) {
-      char c = sim800->read();
-      _buffer += c;
+  // unsigned long timeout = millis() + 5000; // Set a timeout of 5 seconds
+  // _buffer = ""; // Clear the buffer
 
-      // Check if the server response has started
-      if (!responseStarted) {
-        int sendOkIndex = _buffer.indexOf(F("SEND OK"));
-        if (sendOkIndex != -1) {
-          responseStarted = true;
-          _buffer = _buffer.substring(sendOkIndex + 8); // Skip "SEND OK" and the newline characters
-        }
-      }
-    }
-  }
+  // bool responseStarted = false;
+  // while (timeout > millis()) {
+  //   if (sim800->available()) {
+  //     char c = sim800->read();
+  //     _buffer += c;
 
-  // Check if the server response has been fully received
-  if (!responseStarted) {
-    response = F("Error: Bad Server response or timeout");
-  } else {
-    // Remove leading newline characters, if any
-    _buffer.trim();
+  //     // Check if the server response has started
+  //     if (!responseStarted) {
+  //       int sendOkIndex = _buffer.indexOf(F("SEND OK"));
+  //       if (sendOkIndex != -1) {
+  //         responseStarted = true;
+  //         _buffer = _buffer.substring(sendOkIndex + 8); // Skip "SEND OK" and the newline characters
+  //       }
+  //     }
+  //   }
+  // }
 
-    // Check if "CLOSED" is present at the end of the response and remove it
-    int closedIndex = _buffer.indexOf(F("CLOSED"));
-    if (closedIndex != -1 && closedIndex == (_buffer.length() - 6)) {
-      _buffer = _buffer.substring(0, closedIndex);
-      _buffer.trim();
-    }
+  // // Check if the server response has been fully received
+  // if (!responseStarted) {
+  //   response = F("Error: Bad Server response or timeout");
+  // } else {
+  //   // Remove leading newline characters, if any
+  //   _buffer.trim();
 
-    // Extract the server response (if available)
-    response = _buffer;
-  }
+  //   // Check if "CLOSED" is present at the end of the response and remove it
+  //   int closedIndex = _buffer.indexOf(F("CLOSED"));
+  //   if (closedIndex != -1 && closedIndex == (_buffer.length() - 6)) {
+  //     _buffer = _buffer.substring(0, closedIndex);
+  //     _buffer.trim();
+  //   }
 
-  // Close the TCP connection if it was not already open
-  sim800->println(F("AT+CIPCLOSE"));
-  _readBuffer(200);
+  //   // Extract the server response (if available)
+  //   response = _buffer;
+  // }
 
+  // // Close the TCP connection if it was not already open
+  // sim800->println(F("AT+CIPCLOSE"));
+  // _readBuffer(200);
+
+  response = _buffer;
   return response;
 }
 
