@@ -57,6 +57,7 @@ class ClientThread(Thread):
                         
                         devide_data = decoder.device_data_decoder(received, print_bits=True)
                         imei = devide_data.get('imei')
+                        print(json.dumps(devide_data, indent=2))
                         
                         print(f"[DEBUG] [{self.addr[0]}] [{datetime.now()}] [PROTOCOL NUMBER={packet_structure.get('protocol_number')}]: Is a login handshake. from IMEI: {imei}")
                         
