@@ -5,6 +5,7 @@ import struct
 import binascii
 from pprint import pprint
 import json
+from datetime import datetime
 
 from decoder import Decoder
 
@@ -40,19 +41,23 @@ class ClientThread(Thread):
         pass
 
     def run(self):
+        
+        print(f"[SERVER] [{datetime.now()}] NEW CONNECTION from: {self.addr[0]}")
+        
         client = self.conn
         if client:
             self.identifier = self.addr[0]
-            for _ in range(2):
-                try:
-                    buff = self.conn.recv(8192)
-                    
-                    print(f"\n[DEBUG]: DATA RECIEVED: {buff}\n\n")
+            
+            try:
+                buff = self.conn.recv(8192)
+                
+                print(f"\n[DEBUG]: DATA RECIEVED: {buff}\n\n")
 
-                    self.conn.send(f"DATA RECIEVED: {buff}".encode('utf-8'))
-                    
-                except socket.error as err:
-                    print(f"[+] Socket Error: {err}")
+                self.conn.send(f"DATA RECIEVED: {buff}".encode('utf-8'))
+                
+            except socket.error as err:
+                print(f"[+] Socket Error: {err}")
+                
         else:
             self.log('Socket is null')
 

@@ -136,7 +136,7 @@ String TCPComms::sendDataWithResponse(const String& payload) {
     sim800->println(F("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\""));
     _readBuffer(5000);
     if (_buffer.indexOf(F("CONNECT OK")) == -1) {
-      Serial.println(_buffer);
+      // Serial.println(_buffer);
       response = F("Error: Failed TCP connect");
       return response;
     }
