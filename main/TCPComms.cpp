@@ -132,11 +132,12 @@ String TCPComms::sendDataWithResponse(const String& payload) {
   bool tcpConnected = _buffer.indexOf(F("STATE: CONNECT OK")) != -1;
 
   if (!tcpConnected) {
-    // TCP connection is not active, establish the connection
+    // TCP connection is not active, establish new connection
     sim800->println(F("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\""));
     _readBuffer(5000);
     if (_buffer.indexOf(F("CONNECT OK")) == -1) {
-      response = F("Error: Failed to establish TCP connection");
+      Serial.println(_buffer);
+      response = F("Error: Failed TCP connect");
       return response;
     }
   }
@@ -171,7 +172,7 @@ String TCPComms::sendDataWithResponse(const String& payload) {
 
   // Check if the server response has been fully received
   if (!responseStarted) {
-    response = F("Error: Server response not fully received or timeout");
+    response = F("Error: Bad Server response or timeout");
   } else {
     // Remove leading newline characters, if any
     _buffer.trim();
@@ -331,6 +332,14 @@ unsigned long TCPComms::getTimestamp() {
       month += 12;
       year--;
     }
+
+    // Verify the year is valid
+    // if (year < 23) {
+
+    //   Serial.print("Invalid year: ");
+    //   Serial.println(year);
+    //   return 99;
+    // } 
 
     // Correcting for 2-digit year values
     year += 2000;

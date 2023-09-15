@@ -21,6 +21,10 @@ example_avl = b"00000000000004a7080c000001885bb720200015ffae49ff3df8a6064600ad0b
 ## EXAMPLE DATA END
 
 
+## ASK THE USER FOR THE PORT THEY WANT TO USE
+port = input("What port do you want to use to listen for connections? (INTAGERS ONLY)")
+port = int(port)
+
 class ClientThread(Thread):
     def __init__(self, _socket) -> None:
         Thread.__init__(self)
@@ -41,34 +45,12 @@ class ClientThread(Thread):
             self.identifier = self.addr[0]
             for _ in range(2):
                 try:
-                    decoder = Decoder()
                     buff = self.conn.recv(8192)
-                    received = binascii.hexlify(buff)
-                    received_sepd = binascii.hexlify(buff, " ")
                     
                     print(f"\n[DEBUG]: DATA RECIEVED: {buff}\n\n")
+
+                    self.conn.send(f"DATA RECIEVED: {buff}".encode('utf-8'))
                     
-                    # if len(received) > 2:
-                    #     if self.step == 1:
-                    #         self.step = 2
-                    #         self.imei = decoder.get_imei(received) 
-                    #         self.log("Device Authenticated | IMEI: {}".format(self.imei))
-                    #         self.conn.send('\x01'.encode('utf-8'))
-                    #     elif self.step == 2:
-                    #         decoder = Decoder()
-                    #         data = decoder.decode_data(received)
-                    #         len_records = data['records_length']
-                    #         if len_records == 0:
-                    #             self.conn.send('\x00'.encode('utf-8'))
-                    #             self.conn.close()
-                    #         else:
-                    #             self.conn.send(struct.pack("!L", len_records))
-                    #             self.log("Done! Closing Connection")
-                    #             self.conn.close()
-                            
-                    #         print(f"[DEBUG] DATA: \n{json.dumps(data, indent=2)}")
-                    # else:
-                    #     self.conn.send('\x00'.encode('utf-8'))
                 except socket.error as err:
                     print(f"[+] Socket Error: {err}")
         else:

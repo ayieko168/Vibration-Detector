@@ -65,7 +65,7 @@ void setup() {
   bool tcpcoms_started = false;
   while (!tcpcoms_started){
     tcpcoms_started = tcpcoms.begin(10, 11, 12);
-    Serial.print("SIM800 Serial Connected: ");
+    Serial.print("SIM800 Connected: ");
     Serial.println(tcpcoms_started);
     delay(100);
   }
@@ -73,7 +73,7 @@ void setup() {
   /* --------- Set the IMEI Number from the device ----------*/
   while (imei.indexOf("NONE") != -1){
     imei = tcpcoms.getImeiNumber();
-    Serial.print("IMEI Number set to: ");
+    Serial.print("IMEI Number: ");
     Serial.println(imei);
     delay(100);
   }
@@ -82,7 +82,7 @@ void setup() {
   int timeSetState = 999;
   while (timeSetState != 200 && timeSetState != 201){
     timeSetState = tcpcoms.setCurrentTime();
-    Serial.print("Setting time to current datetime: ");
+    Serial.print("Setting time: ");
     Serial.println(timeSetState);
   }
 
@@ -110,16 +110,16 @@ void setup() {
   int connectionRetries = 0;
   while (connectionStatus != 200 && connectionStatus != 202){
     connectionStatus = tcpcoms.connectInternet();
-    Serial.print("Internet Connection Status: ");
+    Serial.print("Internet Connection: ");
     Serial.println(connectionStatus); 
-    delay(5000);
+    delay(10000);
 
     connectionRetries ++;
-    if (connectionRetries >= 5){
-      Serial.println("Resetting the SIM800 and retrying in 10 Seconds...");
+    if (connectionRetries > 5){
+      Serial.println("Restart SIM800 in 10.");
       tcpcoms.resetSim800();
       connectionRetries = 0;
-      delay(10000);
+      delay(20000);
     }
   }
 
@@ -149,39 +149,39 @@ void loop() {
   float absDisp2 = absoluteDisplasement * absoluteDisplasement;
 
   /* Logic to check if state has changed */
-  // if (absDisp2 > WORKING_THRESHOLD_DISP) {
-  //   // In Working state
-  //   currentMillis_w = millis();
-  //   if (abs(currentMillis_w - previousMillis_w) > WORKING_THRESHOLD_PERIOD) {
-  //     Serial.print(abs(currentMillis_w - previousMillis_w));
-  //     Serial.println(" WORKING STATE! ");
-  //     // Set state
-  //     state = 2;
-  //     previousMillis_w = currentMillis_w;
-  //   }
-  //   // Reset the idle state timer
-  //   previousMillis_i = millis();
-  // } else if (absDisp2 > IDLE_THRESHOLD_DISP && absDisp2 < WORKING_THRESHOLD_DISP) {
-  //   // In Idle state
-  //   currentMillis_i = millis();
-  //   if (abs(currentMillis_i - previousMillis_i) > IDLE_THRESHOLD_PERIOD) {
-  //     Serial.print(abs(currentMillis_i - previousMillis_i));
-  //     Serial.println(" IDLE STATE! ");
-  //     // Set state
-  //     state = 1;
-  //     previousMillis_i = currentMillis_i;
-  //     previousMillis_w = millis();
-  //   }
-  // } else {
-  //   Serial.println(" OFF STATE! ");
-  //     // Set state
-  //   state = 3;
+  if (absDisp2 > WORKING_THRESHOLD_DISP) {
+    // In Working state
+    currentMillis_w = millis();
+    if (abs(currentMillis_w - previousMillis_w) > WORKING_THRESHOLD_PERIOD) {
+      Serial.print(abs(currentMillis_w - previousMillis_w));
+      Serial.println(" WORKING STATE! ");
+      // Set state
+      state = 2;
+      previousMillis_w = currentMillis_w;
+    }
+    // Reset the idle state timer
+    previousMillis_i = millis();
+  } else if (absDisp2 > IDLE_THRESHOLD_DISP && absDisp2 < WORKING_THRESHOLD_DISP) {
+    // In Idle state
+    currentMillis_i = millis();
+    if (abs(currentMillis_i - previousMillis_i) > IDLE_THRESHOLD_PERIOD) {
+      Serial.print(abs(currentMillis_i - previousMillis_i));
+      Serial.println(" IDLE STATE! ");
+      // Set state
+      state = 1;
+      previousMillis_i = currentMillis_i;
+      previousMillis_w = millis();
+    }
+  } else {
+    Serial.println(" OFF STATE! ");
+      // Set state
+    state = 3;
 
-  //   currentMillis_w = 0;
-  //   previousMillis_w = 0;
-  //   currentMillis_i = 0;
-  //   previousMillis_i = 0;
-  // }
+    currentMillis_w = 0;
+    previousMillis_w = 0;
+    currentMillis_i = 0;
+    previousMillis_i = 0;
+  }
 
   // Set current reading to the previous value for the next iteration.
   previousReading = gyroscopeMagnitude;
@@ -245,7 +245,7 @@ void loop() {
 
       if (foundValidData){
         Serial.println();
-        Serial.print("GPS Data Aquisition Retries: ");
+        Serial.print("GPS Get Retries: ");
         Serial.println(dataAquisitionRetries);
         dataAquisitionRetries = 0;
         foundValidData = false;
@@ -264,26 +264,26 @@ void loop() {
 
   /* --------------- Send the data packet -----------------*/
   serverResponse = "";
-  String deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
-  if (deviceDataPacketString.length() != 72){
-    Serial.print("Device Data Packet String: ");
+  String deviceDataPacketString = "";
+  // deviceDataPacketString.reserve(70);
+  while (deviceDataPacketString.length() < 72) {
+    deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
+    Serial.print("IDDPS: ");
     Serial.println(deviceDataPacketString);
-
-    Serial.println("==================================");
-    delay(5000);
-    return;
-    
+    // Serial.println(deviceDataPacketString.length());
+    delay(10);
   }
-  // String sentErrorCheck = deviceDataPacketString.substring(68, 72);
-  // serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
-  Serial.print("Device Data Packet String: ");
-  Serial.println(deviceDataPacketString);
-  // Serial.print("Recieved Error Check: ");
-  // Serial.print(serverResponse);
+
+  String sentErrorCheck = deviceDataPacketString.substring(68, 72);
+  serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
+  // Serial.print("Device Data Packet String: ");
+  // Serial.println(deviceDataPacketString);
+  Serial.print("Response: ");
+  Serial.println(serverResponse);
   // Serial.print(" Sent Error Cech: ");
   // Serial.println(sentErrorCheck);
 
-  Serial.println("==================================");
+  Serial.println("==");
   delay(5000);  // Wait X seconds before sending another packet.
 }
 
