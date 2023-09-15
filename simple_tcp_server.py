@@ -22,7 +22,7 @@ example_avl = b"00000000000004a7080c000001885bb720200015ffae49ff3df8a6064600ad0b
 
 
 ## ASK THE USER FOR THE PORT THEY WANT TO USE
-port = input("What port do you want to use to listen for connections? (INTAGERS ONLY)")
+port = input("What port do you want to use to listen for connections? (INTAGERS ONLY)\n>>> ")
 port = int(port)
 
 class ClientThread(Thread):
