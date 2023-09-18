@@ -249,7 +249,7 @@ void loop() {
 
       if (foundValidData){
         Serial.println();
-        Serial.print("GPS Get Retries: ");
+        Serial.print(F("GPS Get Retries: "));
         Serial.println(dataAquisitionRetries);
         dataAquisitionRetries = 0;
         foundValidData = false;
@@ -285,7 +285,7 @@ void loop() {
   serverResponse = tcpcoms.sendDataWithResponse(deviceDataPacketString);
   // Serial.print("Device Data Packet String: ");
   // Serial.println(deviceDataPacketString);
-  Serial.print("Response: ");
+  Serial.print(F("Response: "));
   Serial.println(serverResponse);
   // Serial.print(" Sent Error Cech: ");
   // Serial.println(sentErrorCheck);
