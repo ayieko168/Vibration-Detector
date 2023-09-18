@@ -7,7 +7,7 @@ class CodecKT1 {
 
   public:
     uint16_t calculateCRC16(uint8_t* data, size_t dataSize);
-    String createDeviceDataPacket(const String imei, float longitude, float latitude, uint64_t timestamp, uint8_t satellites, uint16_t acceleration, uint8_t state, uint16_t battVoltage);
+    String createDeviceDataPacket(const String imei, const float longitude, const float latitude, const uint64_t timestamp, const uint8_t satellites, const uint16_t acceleration, const uint8_t state, const uint16_t battVoltage);
     
 };
 

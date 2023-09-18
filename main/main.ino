@@ -268,7 +268,7 @@ void loop() {
   serverResponse = "";
   String deviceDataPacketString = "";
   int packet_error_counter = 0;
-  while (deviceDataPacketString.length() < 72) {
+  while (deviceDataPacketString.length() < 74) {
     packet_error_counter ++;
     deviceDataPacketString = codec.createDeviceDataPacket(imei, longitude, latitude, timestamp, satellites, acceleration, state, battVoltage);
     Serial.print("IDDPS: ");
