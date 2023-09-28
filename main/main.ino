@@ -11,7 +11,7 @@ String serverResponse;
 int connectedToInterent;
 
 /* GPS Module Variables */
-const int GPSRXPin = 5, GPSTXPin = 6;
+const int GPSRXPin = 6, GPSTXPin = 5;
 const uint32_t GPSBaud = 9600;
 int dataAquisitionRetries = 0;
 bool foundValidData = false;
@@ -25,9 +25,9 @@ uint8_t MPU6050_GYRO_FS_2000 = 3;
 float previousReading = 0.0;
 float absoluteDisplasement = 0.0;
 float gyroscopeMagnitude = 0.0;
-float WORKING_THRESHOLD_DISP = 1000.0;  // Amplitude
-float IDLE_THRESHOLD_DISP = 500.0;
-float OFF_THRESHOLD_DISP = 200.0;
+float WORKING_THRESHOLD_DISP = 50.0;  // Amplitude
+float IDLE_THRESHOLD_DISP = 5.0;
+float OFF_THRESHOLD_DISP = 0.0;
 int WORKING_THRESHOLD_PERIOD = 5000;  // In MilliSeconds
 int IDLE_THRESHOLD_PERIOD = 5000;
 int OFF_THRESHOLD_PERIOD = 60000;
@@ -199,11 +199,11 @@ void loop() {
 
         if (gps.location.isValid()) {
           latitude = static_cast<float>(gps.location.lat());
-          Serial.print(F("- lat: "));
-          Serial.print(gps.location.lat(), 8);
+          Serial.print(F("- latitude: "));
+          Serial.println(gps.location.lat(), 8);
 
           longitude = static_cast<float>(gps.location.lng());
-          Serial.print(F(" - lon: "));
+          Serial.print(F("- longitude: "));
           Serial.println(gps.location.lng(), 8);
 
           // Break out of the Location Loop when a valip location is aquired.
@@ -213,21 +213,21 @@ void loop() {
         } else {
           longitude = 0;
           latitude = 0;
-          // Serial.print(F("- location: 00 00"));
+          Serial.println(F("- location: INVALID"));
         }
 
-        Serial.print(F("- acc: "));
+        Serial.print(F("- speed: "));
         if (gps.speed.isValid()) {
 
           acceleration = static_cast<uint16_t>(gps.speed.kmph());
           Serial.print(gps.speed.kmph());
-          Serial.print(F(" km/h"));
+          Serial.println(F(" km/h"));
         } else {
           acceleration = 0;
-          Serial.print(F("00"));
+          Serial.println(F("INVALID"));
         }
 
-        Serial.print(F("- Satt: "));
+        Serial.print(F("- Satellites: "));
         if (gps.satellites.isValid()) {
 
           uint32_t sats_32 = gps.satellites.value();
@@ -243,7 +243,7 @@ void loop() {
         } else {
 
           satellites = UINT8_MAX;
-          Serial.print(F("00"));
+          Serial.println(F("INVALID"));
         }
       }
 
@@ -290,7 +290,7 @@ void loop() {
   // Serial.print(" Sent Error Cech: ");
   // Serial.println(sentErrorCheck);
 
-  Serial.println("====");
+  Serial.println("==");
   delay(5000);  // Wait X seconds before sending another packet.
 }
 
