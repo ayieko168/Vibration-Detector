@@ -41,22 +41,28 @@ String CodecKT1::createDeviceDataPacket(const String imei, const float longitude
   // Longitude
   uint32_t longitudeData;
   memcpy(&longitudeData, &longitude, sizeof(longitudeData));
-  char hexLongitude[9];
-  snprintf(hexLongitude, sizeof(hexLongitude), "%08X", longitudeData);
+  char hexLongitude[sizeof(longitudeData) * 2 + 1];
+  for (int i = sizeof(longitudeData) * 2 - 1; i >= 0; i--)
+    hexLongitude[sizeof(longitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(longitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
+  hexLongitude[sizeof(longitudeData) * 2] = '\0';
   packet_hex_string.concat(hexLongitude);
   // Serial.println(packet_hex_string);
 
   // Latitude
   uint32_t latitudeData;
   memcpy(&latitudeData, &latitude, sizeof(latitudeData));
-  char hexLatitude[9];
-  snprintf(hexLatitude, sizeof(hexLatitude), "%08X", latitudeData);
+  char hexLatitude[sizeof(latitudeData) * 2 + 1];
+  for (int i = sizeof(latitudeData) * 2 - 1; i >= 0; i--)
+    hexLatitude[sizeof(latitudeData) * 2 - 1 - i] = "0123456789ABCDEF"[(latitudeData >> (i / 2 * 8 + 4 * (i % 2))) & 0xF];
+  hexLatitude[sizeof(latitudeData) * 2] = '\0';
   packet_hex_string.concat(hexLatitude);
   // Serial.println(packet_hex_string);
 
   // Timestamp
   char hexTimestamp[17];
-  snprintf(hexTimestamp, sizeof(hexTimestamp), "%016llX", static_cast<unsigned long long>(timestamp));
+  for (int i = 0; i < 16; i++)
+    hexTimestamp[i] = "0123456789ABCDEF"[(timestamp >> ((15 - i) * 4)) & 0xF];
+  hexTimestamp[16] = '\0';
   packet_hex_string.concat(hexTimestamp);
   // Serial.println(packet_hex_string);
 

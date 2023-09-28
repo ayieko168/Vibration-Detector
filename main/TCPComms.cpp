@@ -133,7 +133,7 @@ String TCPComms::sendDataWithResponse(const String& payload) {
 
   if (!tcpConnected) {
     // TCP connection is not active, establish new connection
-    sim800->println(F("AT+CIPSTART=\"TCP\",\"151.80.209.133\",\"6500\""));
+    sim800->println(F("AT+CIPSTART=\"TCP\",\"197.248.97.85\",\"6500\""));
     delay(2000);
     // _readBuffer(10000);
     // Serial.println(_buffer);
