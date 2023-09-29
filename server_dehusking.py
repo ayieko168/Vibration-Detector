@@ -23,7 +23,7 @@ MAX_LOG_SIZE_BYTES = 4 * 1024 * 1024
 
 
 ## Configute logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('')
 file_handler = RotatingFileHandler('runtime.log', mode='a', maxBytes=MAX_LOG_SIZE_BYTES, backupCount=1)
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
@@ -31,7 +31,7 @@ logger.addHandler(file_handler)
 
 # Handler for CRITICAL and higher level logs
 debug_file_handler = RotatingFileHandler('runtime_error.log', mode='a', maxBytes=MAX_LOG_SIZE_BYTES, backupCount=1)
-debug_file_handler.setLevel(logging.ERROR)
+debug_file_handler.setLevel(logging.WARNING)
 debug_file_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
 logger.addHandler(debug_file_handler)
 
