@@ -11,6 +11,7 @@ from decoder import CodecKT1Decoder
 import requests
 from logging.handlers import RotatingFileHandler
 import logging
+import os
 
 # Global Variables
 host = '0.0.0.0'
@@ -20,17 +21,20 @@ headers = {
   'Accept': 'application/json'
 }
 MAX_LOG_SIZE_BYTES = 4 * 1024 * 1024
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+runtime_file = os.path.join(ROOT_DIR, 'runtime.log')
+runtime_errors_file = os.path.join(ROOT_DIR, 'runtime_error.log')
 
 ## Configute logging
 logging.basicConfig(level=logging.DEBUG, format='[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger('')
-file_handler = RotatingFileHandler('runtime.log', mode='a', maxBytes=MAX_LOG_SIZE_BYTES, backupCount=1)
+file_handler = RotatingFileHandler(runtime_file, mode='a', maxBytes=MAX_LOG_SIZE_BYTES, backupCount=1)
 file_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
 logger.addHandler(file_handler)
 
 # Handler for CRITICAL and higher level logs
-debug_file_handler = RotatingFileHandler('runtime_error.log', mode='a', maxBytes=MAX_LOG_SIZE_BYTES, backupCount=1)
+debug_file_handler = RotatingFileHandler(runtime_errors_file, mode='a', maxBytes=MAX_LOG_SIZE_BYTES, backupCount=1)
 debug_file_handler.setLevel(logging.WARNING)
 debug_file_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
 logger.addHandler(debug_file_handler)
